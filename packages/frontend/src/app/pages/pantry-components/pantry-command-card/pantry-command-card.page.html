@@ -22,26 +22,12 @@
 
     <h2>{{ "pages.pantryCommandCard.modes" | translate }}</h2>
     <div class="barcode-grid">
-      <figure>
-        <svg id="command-barcode-add"></svg>
-        <figcaption>
-          {{ "pages.pantryCommandCard.mode.add" | translate }}
-        </figcaption>
-      </figure>
-      <figure>
-        <svg id="command-barcode-consume"></svg>
-        <figcaption>
-          {{ "pages.pantryCommandCard.mode.consume" | translate }}
-        </figcaption>
-      </figure>
-    </div>
-
-    <h2>{{ "pages.pantryCommandCard.locations" | translate }}</h2>
-    <div class="barcode-grid">
-      @for (location of locations(); track location.id) {
+      @for (command of commands; track command.key) {
         <figure>
-          <svg [id]="'command-barcode-location-' + location.id"></svg>
-          <figcaption>{{ location.name }}</figcaption>
+          <svg [id]="'command-barcode-' + command.key"></svg>
+          <figcaption>
+            {{ "pages.pantryCommandCard.mode." + command.key | translate }}
+          </figcaption>
         </figure>
       }
     </div>

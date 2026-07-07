@@ -2,6 +2,11 @@
 # Bootstraps a fresh Raspberry Pi OS Lite (64-bit) install as a pantry
 # scanner station: Docker, host packages for the webcam scanner, and the
 # Grocy + Barcode Buddy station stack. Idempotent — safe to re-run.
+#
+# Fresh Pi OS Lite ships without git, so getting this script requires:
+#   sudo apt-get update && sudo apt-get install -y git
+#   git clone -b smart-pantry --depth 1 <repo-url>
+#   ./RecipeSage/scripts/pantry/setup-pi.sh
 set -euo pipefail
 
 echo "==> Updating system packages"

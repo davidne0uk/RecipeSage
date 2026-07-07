@@ -25,15 +25,15 @@ via `docker-compose.pantry.yml`. The webcam scanner runs on the Pi host via
 - [ ] **OFF hit rate**: of the successfully decoded barcodes, how many did
       Barcode Buddy resolve via Open Food Facts (UK store-brand coverage)?
       Unresolved barcodes appear in Barcode Buddy's "new/unknown" list.
-- [ ] **Command barcode grammar**: confirm the exact `BBUDDY-*` command set of
+- [x] **Command barcode grammar** (VERIFIED 2026-07-07: BBUDDY-P/C/O/CS/CA/Q-/AS/I via /api/system/barcodes; NO location commands exist in 1.8.1.5 — location cards dropped): confirm the exact `BBUDDY-*` command set of
       the installed Barcode Buddy version (Barcode Buddy UI has a built-in
       command barcode page you can print). Needed: consume mode, add/purchase
       mode, and per-location selection. Note whether location commands exist
       natively or require Grocy location barcodes.
-- [ ] **Scan API shape**: confirm the `api/action/scan` parameter name against
+- [x] **Scan API shape** (VERIFIED: ?apikey=..&text=.. works): confirm the `api/action/scan` parameter name against
       the installed version's swagger UI (`/api/`) — `scan-webcam.sh` assumes
       `text`; adjust if the API differs.
-- [ ] **Audio**: confirm `sox`/`play` produces sound on the attached speaker
+- [x] **Audio** (VERIFIED: sox beeps on 3.5mm jack): confirm `sox`/`play` produces sound on the attached speaker
       (`play -n synth 0.2 sine 800`); if not, check `aplay -l` output and set
       the default ALSA device.
 

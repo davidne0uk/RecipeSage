@@ -1,8 +1,6 @@
-import { Component, inject, signal } from "@angular/core";
+import { Component, inject } from "@angular/core";
 import JsBarcode from "jsbarcode";
 
-import { ServerActionsService } from "../../../services/server-actions.service";
-import type { RouterOutputs } from "../../../services/server-actions/actions-base";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
 import {
   IonHeader,
@@ -19,15 +17,17 @@ import { printOutline } from "ionicons/icons";
 import { addIcons } from "ionicons";
 
 /**
- * Barcode Buddy command grammar. BBUDDY-* are Barcode Buddy's built-in mode
- * commands; grcy:l:<id> is the Grocy location barcode format it understands
- * for location switching. Verify against the installed Barcode Buddy version
- * during station setup (see scripts/pantry/README.md) and adjust here if the
- * grammar differs.
+ * Barcode Buddy command grammar, verified against a live 1.8.1.5 instance
+ * via GET /api/system/barcodes. Location switching via scanned barcodes is
+ * NOT supported by Barcode Buddy — stock lands at each product's default
+ * Grocy location, and placement/moves are done in the pantry UI.
  */
-const COMMAND_ADD = "BBUDDY-P";
-const COMMAND_CONSUME = "BBUDDY-C";
-const locationCommand = (locationId: number) => `grcy:l:${locationId}`;
+const COMMANDS: { key: string; barcode: string }[] = [
+  { key: "add", barcode: "BBUDDY-P" },
+  { key: "consume", barcode: "BBUDDY-C" },
+  { key: "open", barcode: "BBUDDY-O" },
+  { key: "consumeAll", barcode: "BBUDDY-CA" },
+];
 
 @Component({
   standalone: true,
@@ -48,46 +48,24 @@ const locationCommand = (locationId: number) => `grcy:l:${locationId}`;
   ],
 })
 export class PantryCommandCardPage {
-  serverActionsService = inject(ServerActionsService);
-
-  locations = signal<RouterOutputs["pantry"]["getLocations"] | undefined>(
-    undefined,
-  );
+  commands = COMMANDS;
 
   constructor() {
     addIcons({ printOutline });
   }
 
-  async ionViewWillEnter() {
-    const locations = await this.serverActionsService.pantry.getLocations();
-    if (!locations) return;
-    this.locations.set(locations);
-
-    // Render after the @for has created the SVG elements
-    setTimeout(() => this.renderBarcodes(), 0);
-  }
-
-  private renderBarcodes() {
-    this.renderBarcode("command-barcode-add", COMMAND_ADD);
-    this.renderBarcode("command-barcode-consume", COMMAND_CONSUME);
-    for (const location of this.locations() || []) {
-      this.renderBarcode(
-        `command-barcode-location-${location.id}`,
-        locationCommand(location.id),
-      );
+  ionViewDidEnter() {
+    for (const command of this.commands) {
+      const element = document.getElementById(`command-barcode-${command.key}`);
+      if (!element) continue;
+      JsBarcode(element, command.barcode, {
+        format: "CODE128",
+        displayValue: true,
+        height: 60,
+        fontSize: 14,
+        margin: 8,
+      });
     }
-  }
-
-  private renderBarcode(elementId: string, value: string) {
-    const element = document.getElementById(elementId);
-    if (!element) return;
-    JsBarcode(element, value, {
-      format: "CODE128",
-      displayValue: true,
-      height: 60,
-      fontSize: 14,
-      margin: 8,
-    });
   }
 
   print() {

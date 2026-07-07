@@ -44,8 +44,9 @@ else is counted.
 
 Pantry page → options menu → _Print command card_. Laminate it or tape it
 next to the scanner station. Scanning **Add mode** / **Consume mode** changes
-what subsequent item scans do; scanning a **location** directs added items
-there.
+what subsequent item scans do. (Barcode Buddy has no location commands —
+added stock lands at each product's home location, and new items get their
+location when you confirm them in the app.)
 
 > The card uses Barcode Buddy's default command grammar. During station
 > setup, confirm the grammar against your Barcode Buddy version (it has its
@@ -86,7 +87,7 @@ there.
 ## 6. Day-to-day flows
 
 - **Unloading groceries**: scan _Add mode_ once, then beep items through the
-  station. Scan a location card first to direct them somewhere specific.
+  station. New items appear in the app for confirmation and placement.
 - **Cooking**: scan _Consume mode_, beep out what you use — or use the phone:
   pantry page → scan button, with the Adding/Using-up toggle.
 - **Herbs & spices**: open the jar's entry in the pantry page → _Estimate
