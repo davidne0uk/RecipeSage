@@ -70,6 +70,11 @@ export const config = {
     url: getEnvString("GRIP_URL", Environment.All),
     key: getEnvString("GRIP_KEY", Environment.All),
   },
+  grocy: {
+    // Optional: pantry features are disabled when unset
+    url: getEnvString("GROCY_URL", []),
+    apiKey: getEnvString("GROCY_API_KEY", []),
+  },
   ai: {
     provider:
       getEnvString("AI_PROVIDER", Environment.AllRuntime) || "openrouter",

@@ -8,6 +8,9 @@ export * from "./auth/sanitizeUserEmail";
 export * from "./categorize/getShoppingListItemCategories";
 export * from "./categorize/getShoppingListItemGroupTitles";
 
+export * from "./grocy";
+export * from "./pantry";
+
 export * from "./email/sendPasswordResetEmail";
 
 export * from "./jobs/getJobResultCode";

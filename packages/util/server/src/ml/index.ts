@@ -6,3 +6,5 @@ export * from "./documentToRecipe";
 export * from "./textToRecipe";
 export * from "./textToNutrition";
 export * from "./moderateDiscoverRecipe";
+export * from "./photoToProduct";
+export * from "./photoToFillLevel";

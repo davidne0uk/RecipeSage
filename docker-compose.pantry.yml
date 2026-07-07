@@ -1,0 +1,55 @@
+# Smart pantry overlay: adds Grocy (headless stock engine) and Barcode Buddy
+# to the RecipeSage stack. Grocy is the single source of truth for pantry
+# stock; its UI is only used once to create an API key.
+#
+# Dev:
+#   docker compose -f docker-compose.yml -f docker-compose.pantry.yml up
+#
+# Raspberry Pi: apply this same overlay on top of the selfhost compose file.
+# Both images below are multi-arch (arm64 supported).
+#
+# One-time setup:
+#   1. Start the stack and open Grocy at http://localhost:9283
+#      (default login admin/admin — change it).
+#   2. Create an API key: Grocy > wrench icon > Manage API keys.
+#   3. Set GROCY_API_KEY in ./.env and restart the backend.
+#   4. Seed locations and container units: ./scripts/pantry/seed-grocy.sh
+#   5. Configure Barcode Buddy at http://localhost:9284 (it reads its Grocy
+#      connection from the BBUDDY_* environment below).
+
+services:
+  backend:
+    depends_on:
+      - grocy
+    environment:
+      GROCY_URL: http://grocy:80/
+      GROCY_API_KEY: ${GROCY_API_KEY:-}
+  grocy:
+    image: lscr.io/linuxserver/grocy:latest
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    volumes:
+      - grocy-data:/config
+    ports:
+      - "9283:80"
+    stop_grace_period: 1s
+  barcodebuddy:
+    image: f0rc3/barcodebuddy-docker:latest
+    depends_on:
+      - grocy
+    environment:
+      - TZ=Europe/London
+      - ATTACH_BARCODESCANNER=false
+      - BBUDDY_GROCY_API_URL=http://grocy:80/api/
+      - BBUDDY_GROCY_API_KEY=${GROCY_API_KEY:-}
+    volumes:
+      - barcodebuddy-data:/config
+    ports:
+      - "9284:80"
+    stop_grace_period: 1s
+
+volumes:
+  grocy-data:
+  barcodebuddy-data:

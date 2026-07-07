@@ -617,8 +617,24 @@ model User {
   discoverRecipeRatings     DiscoverRecipeRating[]
   discoverRecipeSaves       DiscoverRecipeSave[]
   discoverRecipeReports     DiscoverRecipeReport[]
+  pantryProductAliases      PantryProductAlias[]
 
   @@map("Users")
+}
+
+/// User override linking a recipe ingredient (normalized text) to a Grocy
+/// product, taking precedence over fuzzy pantry matching.
+model PantryProductAlias {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @db.Uuid
+  ingredientText String
+  grocyProductId Int
+  createdAt      DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(6)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, ingredientText], map: "Pantry_Product_Aliases_userId_ingredientText_uk")
+  @@map("Pantry_Product_Aliases")
 }
 
 model ClipCache {

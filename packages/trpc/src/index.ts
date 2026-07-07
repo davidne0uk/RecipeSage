@@ -18,9 +18,11 @@ import { paymentsRouter } from "./procedures/payments/paymentsRouter";
 import { imagesRouter } from "./procedures/images/imagesRouter";
 import { messagesRouter } from "./procedures/messages/messagesRouter";
 import { discoverRouter } from "./procedures/discover/discoverRouter";
+import { pantryRouter } from "./procedures/pantry/pantryRouter";
 
 export const appRouter = router({
   discover: discoverRouter,
+  pantry: pantryRouter,
   labelGroups: labelGroupsRouter,
   labels: labelsRouter,
   payments: paymentsRouter,
