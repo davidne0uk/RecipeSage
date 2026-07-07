@@ -37,8 +37,13 @@ beep_fail() { play -qn synth 0.4 sine 300 2>/dev/null || printf '\a\a'; }
 last_code=""
 last_time=0
 
-echo "Watching ${VIDEO_DEVICE}; scans go to ${BBUDDY_URL}"
-zbarcam --raw --nodisplay "${VIDEO_DEVICE}" | while read -r code; do
+# Full resolution matters: at zbarcam's 640x480 default, typical EAN
+# barcodes at ~20cm are too few pixels to decode (validated on a C920 —
+# only oversized barcodes worked). 1080p decodes reliably.
+SCAN_RESOLUTION="${SCAN_RESOLUTION:-1920x1080}"
+
+echo "Watching ${VIDEO_DEVICE} at ${SCAN_RESOLUTION}; scans go to ${BBUDDY_URL}"
+zbarcam --raw --nodisplay --prescale="${SCAN_RESOLUTION}" "${VIDEO_DEVICE}" | while read -r code; do
   [ -z "$code" ] && continue
 
   # Ignore immediate re-reads of the same barcode while it's still in frame
