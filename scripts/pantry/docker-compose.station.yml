@@ -1,0 +1,40 @@
+# Standalone scanner-station stack for the Raspberry Pi: Grocy (stock
+# engine) + Barcode Buddy only. Use this when the RecipeSage app itself runs
+# elsewhere (e.g. a dev machine) with GROCY_URL pointed at this Pi.
+#
+#   docker compose -f docker-compose.station.yml up -d
+#
+# The full-stack overlay for running everything on one host is
+# ../../docker-compose.pantry.yml.
+
+services:
+  grocy:
+    image: lscr.io/linuxserver/grocy:latest
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    volumes:
+      - grocy-data:/config
+    ports:
+      - "9283:80"
+    restart: unless-stopped
+  barcodebuddy:
+    # Per-architecture tags; arm64 default for the Pi. amd64 = v1.8.1.5
+    image: f0rc3/barcodebuddy-docker:${BARCODEBUDDY_TAG:-arm64v8-v1.8.1.5}
+    depends_on:
+      - grocy
+    environment:
+      - TZ=Europe/London
+      - ATTACH_BARCODESCANNER=false
+      - BBUDDY_GROCY_API_URL=http://grocy:80/api/
+      - BBUDDY_GROCY_API_KEY=${GROCY_API_KEY:-}
+    volumes:
+      - barcodebuddy-data:/config
+    ports:
+      - "9284:80"
+    restart: unless-stopped
+
+volumes:
+  grocy-data:
+  barcodebuddy-data:
