@@ -17,6 +17,20 @@ set -euo pipefail
 VIDEO_DEVICE="${VIDEO_DEVICE:-/dev/video0}"
 DEDUPE_SECONDS="${DEDUPE_SECONDS:-3}"
 
+# Own the camera state on every start — other tools (previews, capture
+# utilities) can leave focus/exposure in a state that silently kills
+# decoding. Set FOCUS_ABSOLUTE (0-250) to lock focus at the scan spot
+# instead of using autofocus.
+if command -v v4l2-ctl >/dev/null 2>&1; then
+  if [ -n "${FOCUS_ABSOLUTE:-}" ]; then
+    v4l2-ctl -d "$VIDEO_DEVICE" --set-ctrl focus_automatic_continuous=0 2>/dev/null || true
+    v4l2-ctl -d "$VIDEO_DEVICE" --set-ctrl focus_absolute="$FOCUS_ABSOLUTE" 2>/dev/null || true
+  else
+    v4l2-ctl -d "$VIDEO_DEVICE" --set-ctrl focus_automatic_continuous=1 2>/dev/null || true
+  fi
+  v4l2-ctl -d "$VIDEO_DEVICE" --set-ctrl auto_exposure=3 2>/dev/null || true
+fi
+
 beep_ok() { play -qn synth 0.08 sine 1200 : synth 0.08 sine 1600 2>/dev/null || printf '\a'; }
 beep_fail() { play -qn synth 0.4 sine 300 2>/dev/null || printf '\a\a'; }
 
