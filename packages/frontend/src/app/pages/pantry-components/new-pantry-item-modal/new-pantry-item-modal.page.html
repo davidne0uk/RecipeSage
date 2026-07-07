@@ -1,0 +1,100 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title> {{ "pages.newPantryItem.title" | translate }} </ion-title>
+
+    <ion-buttons slot="end">
+      <ion-button (click)="cancel()">
+        <ion-icon name="close-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <ion-button expand="block" fill="outline" (click)="startIdentifyPhoto()">
+    <ion-icon name="camera-outline" slot="start"></ion-icon>
+    {{ "pages.newPantryItem.identifyFromPhoto" | translate }}
+  </ion-button>
+
+  @if (lowConfidence()) {
+    <ion-note color="warning">
+      {{ "pages.newPantryItem.lowConfidence" | translate }}
+    </ion-note>
+  }
+
+  <text-input
+    label="{{ 'pages.newPantryItem.name' | translate }}"
+    [(ngModel)]="name"
+    type="text"
+    autocapitalize="on"
+    autocorrect="on"
+  ></text-input>
+
+  <ion-item>
+    <ion-select
+      label="{{ 'pages.newPantryItem.location' | translate }}"
+      [(ngModel)]="locationId"
+      interface="popover"
+    >
+      @for (location of locations(); track location.id) {
+        <ion-select-option [value]="location.id">
+          {{ location.name }}
+        </ion-select-option>
+      }
+    </ion-select>
+  </ion-item>
+
+  <ion-item>
+    <ion-select
+      label="{{ 'pages.newPantryItem.unit' | translate }}"
+      [(ngModel)]="quantityUnitId"
+      interface="popover"
+    >
+      @for (unit of quantityUnits(); track unit.id) {
+        <ion-select-option [value]="unit.id">
+          {{ unit.name }}
+        </ion-select-option>
+      }
+    </ion-select>
+  </ion-item>
+
+  <ion-item>
+    <ion-input
+      label="{{ 'pages.newPantryItem.amount' | translate }}"
+      type="number"
+      min="0"
+      step="1"
+      [(ngModel)]="amount"
+    ></ion-input>
+  </ion-item>
+
+  <ion-item>
+    <ion-input
+      label="{{ 'pages.newPantryItem.bestBefore' | translate }}"
+      type="date"
+      [(ngModel)]="bestBeforeDate"
+    ></ion-input>
+  </ion-item>
+
+  <text-input
+    label="{{ 'pages.newPantryItem.barcode' | translate }}"
+    [(ngModel)]="barcode"
+    type="text"
+  ></text-input>
+
+  <input
+    #identifyPhotoInput
+    type="file"
+    accept="image/*"
+    capture="environment"
+    class="photo-input"
+    (change)="onIdentifyPhotoSelected($event)"
+  />
+</ion-content>
+
+<ion-footer class="ion-padding">
+  <ion-button expand="block" (click)="save()" [disabled]="!isFormValid()">
+    <ion-icon name="checkmark-outline" slot="start"></ion-icon>
+    <ion-label> {{ "pages.newPantryItem.save" | translate }} </ion-label>
+  </ion-button>
+</ion-footer>

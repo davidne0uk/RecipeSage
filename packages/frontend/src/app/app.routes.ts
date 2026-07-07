@@ -530,6 +530,33 @@ export const appRoutes: Routes = [
     title: "pages.shoppingLists.tabTitle",
   },
   {
+    path: RouteMap.PantryScanPage.path,
+    loadComponent: () =>
+      import("./pages/pantry-components/pantry-scan/pantry-scan.page").then(
+        (m) => m.PantryScanPage,
+      ),
+    canDeactivate: [UnsavedChangesGuardService],
+    title: "pages.pantryScan.tabTitle",
+  },
+  {
+    path: RouteMap.PantryCommandCardPage.path,
+    loadComponent: () =>
+      import("./pages/pantry-components/pantry-command-card/pantry-command-card.page").then(
+        (m) => m.PantryCommandCardPage,
+      ),
+    canDeactivate: [UnsavedChangesGuardService],
+    title: "pages.pantryCommandCard.tabTitle",
+  },
+  {
+    path: RouteMap.PantryPage.path,
+    loadComponent: () =>
+      import("./pages/pantry-components/pantry/pantry.page").then(
+        (m) => m.PantryPage,
+      ),
+    canDeactivate: [UnsavedChangesGuardService],
+    title: "pages.pantry.tabTitle",
+  },
+  {
     path: RouteMap.ShoppingListPage.path,
     loadComponent: () =>
       import("./pages/shopping-list-components/shopping-list/shopping-list.page").then(

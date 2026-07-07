@@ -1,0 +1,49 @@
+<ion-header class="no-print">
+  <ion-toolbar color="nav">
+    <ion-buttons slot="start">
+      <ion-back-button></ion-back-button>
+    </ion-buttons>
+
+    <ion-title> {{ "pages.pantryCommandCard.title" | translate }} </ion-title>
+
+    <ion-buttons slot="end">
+      <ion-button (click)="print()">
+        <ion-icon name="print-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="command-card">
+    <ion-note class="no-print ion-padding">
+      {{ "pages.pantryCommandCard.description" | translate }}
+    </ion-note>
+
+    <h2>{{ "pages.pantryCommandCard.modes" | translate }}</h2>
+    <div class="barcode-grid">
+      <figure>
+        <svg id="command-barcode-add"></svg>
+        <figcaption>
+          {{ "pages.pantryCommandCard.mode.add" | translate }}
+        </figcaption>
+      </figure>
+      <figure>
+        <svg id="command-barcode-consume"></svg>
+        <figcaption>
+          {{ "pages.pantryCommandCard.mode.consume" | translate }}
+        </figcaption>
+      </figure>
+    </div>
+
+    <h2>{{ "pages.pantryCommandCard.locations" | translate }}</h2>
+    <div class="barcode-grid">
+      @for (location of locations(); track location.id) {
+        <figure>
+          <svg [id]="'command-barcode-location-' + location.id"></svg>
+          <figcaption>{{ location.name }}</figcaption>
+        </figure>
+      }
+    </div>
+  </div>
+</ion-content>

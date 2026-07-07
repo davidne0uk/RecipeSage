@@ -390,6 +390,24 @@ export const RouteMap = {
     },
     path: "shopping-lists",
   },
+  PantryPage: {
+    getPath() {
+      return `/pantry`;
+    },
+    path: "pantry",
+  },
+  PantryScanPage: {
+    getPath() {
+      return `/pantry/scan`;
+    },
+    path: "pantry/scan",
+  },
+  PantryCommandCardPage: {
+    getPath() {
+      return `/pantry/command-card`;
+    },
+    path: "pantry/command-card",
+  },
   ShoppingListPage: {
     getPath(shoppingListId: string) {
       return `/shopping-lists/${shoppingListId}`;

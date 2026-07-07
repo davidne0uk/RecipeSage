@@ -1,0 +1,36 @@
+.command-card {
+  padding: 16px;
+  max-width: 800px;
+  margin: 0 auto;
+
+  h2 {
+    margin: 24px 0 8px;
+  }
+}
+
+.barcode-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+
+  figure {
+    margin: 0;
+    text-align: center;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 8px;
+
+    figcaption {
+      font-weight: bold;
+      padding-bottom: 4px;
+      color: #000;
+    }
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

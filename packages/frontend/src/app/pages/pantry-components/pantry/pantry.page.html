@@ -1,0 +1,172 @@
+<ion-header>
+  <ion-toolbar color="nav">
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+
+    <ion-title> {{ "pages.pantry.title" | translate }} </ion-title>
+
+    <ion-buttons slot="end">
+      <ion-button id="pantry-options-trigger">
+        <ion-icon name="options-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <div class="page-wrapper">
+    <ion-popover trigger="pantry-options-trigger" triggerAction="click">
+      <ng-template>
+        <ion-content class="ion-padding">
+          <ion-list-header>
+            {{ "generic.options" | translate }}
+          </ion-list-header>
+
+          <ion-button
+            (click)="newLocation()"
+            expand="block"
+            size="small"
+            class="ion-margin"
+          >
+            <ion-icon name="add-outline" slot="start"></ion-icon>
+            {{ "pages.pantry.newLocation" | translate }}
+          </ion-button>
+
+          <ion-button
+            (click)="openCommandCard()"
+            expand="block"
+            size="small"
+            class="ion-margin"
+          >
+            <ion-icon name="print-outline" slot="start"></ion-icon>
+            {{ "pages.pantry.commandCard" | translate }}
+          </ion-button>
+        </ion-content>
+      </ng-template>
+    </ion-popover>
+
+    @if (errorState() === "notConfigured") {
+      <null-state>
+        <ion-icon
+          name="file-tray-stacked-outline"
+          class="big-icon"
+          virtualSlot="header"
+        ></ion-icon>
+        <ion-label virtualSlot="body">
+          <h2>{{ "pages.pantry.notConfigured.title" | translate }}</h2>
+          <p>{{ "pages.pantry.notConfigured.subtitle" | translate }}</p>
+        </ion-label>
+      </null-state>
+    } @else if (errorState() === "unavailable") {
+      <null-state>
+        <ion-icon
+          name="file-tray-stacked-outline"
+          class="big-icon"
+          virtualSlot="header"
+        ></ion-icon>
+        <ion-label virtualSlot="body">
+          <h2>{{ "pages.pantry.unavailable.title" | translate }}</h2>
+          <p>{{ "pages.pantry.unavailable.subtitle" | translate }}</p>
+        </ion-label>
+        <ion-button virtualSlot="body" (click)="load()">
+          {{ "pages.pantry.retry" | translate }}
+        </ion-button>
+      </null-state>
+    } @else if (pantry() === undefined) {
+      <null-state>
+        <ion-spinner virtualSlot="header"></ion-spinner>
+        <ion-label virtualSlot="body">
+          <p>{{ "pages.pantry.loading" | translate }}</p>
+        </ion-label>
+      </null-state>
+    } @else {
+      @if (pantry()?.length === 0) {
+        <null-state>
+          <ion-icon
+            name="file-tray-stacked-outline"
+            class="big-icon"
+            virtualSlot="header"
+          ></ion-icon>
+          <ion-label virtualSlot="body">
+            <h2>{{ "pages.pantry.empty.title" | translate }}</h2>
+            <p>{{ "pages.pantry.empty.subtitle" | translate }}</p>
+          </ion-label>
+          <ion-button virtualSlot="body" (click)="newLocation()">
+            {{ "pages.pantry.newLocation" | translate }}
+          </ion-button>
+        </null-state>
+      }
+
+      <ion-list>
+        @for (entry of pantry(); track entry.location.id) {
+          <ion-item-group>
+            <ion-item-divider sticky>
+              <ion-label>{{ entry.location.name }}</ion-label>
+              <ion-button
+                fill="clear"
+                slot="end"
+                (click)="locationOptions(entry.location)"
+              >
+                <ion-icon
+                  name="ellipsis-horizontal"
+                  slot="icon-only"
+                ></ion-icon>
+              </ion-button>
+            </ion-item-divider>
+
+            @for (item of entry.items; track item.productId) {
+              <ion-item button (click)="itemOptions(item)">
+                <ion-label>
+                  <h2>{{ item.name }}</h2>
+                  @if (item.bestBeforeDate) {
+                    <p>{{ formatBestBefore(item.bestBeforeDate) }}</p>
+                  }
+                </ion-label>
+                <ion-badge
+                  slot="end"
+                  [color]="
+                    item.fillLevel === 'quarter' || item.fillLevel === 'low'
+                      ? 'warning'
+                      : 'medium'
+                  "
+                >
+                  {{ quantityLabel(item) }}
+                </ion-badge>
+              </ion-item>
+            }
+            @if (entry.items.length === 0) {
+              <ion-item lines="none">
+                <ion-note>{{
+                  "pages.pantry.emptyLocation" | translate
+                }}</ion-note>
+              </ion-item>
+            }
+          </ion-item-group>
+        }
+      </ion-list>
+    }
+  </div>
+
+  <input
+    #fillPhotoInput
+    type="file"
+    accept="image/*"
+    capture="environment"
+    class="photo-input"
+    (change)="onFillPhotoSelected($event)"
+  />
+
+  @if (!errorState()) {
+    <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+      <ion-fab-button (click)="openScanner()" color="primary">
+        <ion-icon name="barcode-outline"></ion-icon>
+      </ion-fab-button>
+    </ion-fab>
+    <ion-fab vertical="bottom" horizontal="start" slot="fixed">
+      <ion-fab-button (click)="addItem()" color="secondary">
+        <ion-icon name="add-outline"></ion-icon>
+      </ion-fab-button>
+    </ion-fab>
+  }
+</ion-content>

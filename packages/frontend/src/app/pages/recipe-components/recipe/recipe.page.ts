@@ -46,6 +46,7 @@ import { System } from "unitz-ts";
 import type { RecipeSummary, RecipeSummaryLite } from "@recipesage/prisma";
 import { ServerActionsService } from "../../../services/server-actions.service";
 import { Title } from "@angular/platform-browser";
+import { PantryAvailabilityComponent } from "../../../components/pantry-availability/pantry-availability.component";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
 import { RatingComponent } from "../../../components/rating/rating.component";
 import {
@@ -93,6 +94,7 @@ import { addIcons } from "ionicons";
   styleUrls: ["recipe.page.scss"],
   imports: [
     ...SHARED_UI_IMPORTS,
+    PantryAvailabilityComponent,
     RatingComponent,
     IonHeader,
     IonToolbar,

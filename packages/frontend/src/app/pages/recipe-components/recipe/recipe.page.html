@@ -184,6 +184,7 @@
               <p>{{ "pages.recipeDetails.ingredients" | translate }}</p>
             </ion-label>
           </ion-item>
+          <pantry-availability [recipeId]="recipeId"></pantry-availability>
           <ion-item class="ingredients ion-text-wrap" lines="none">
             <ion-label dir="auto">
               @for (

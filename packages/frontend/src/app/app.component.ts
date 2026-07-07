@@ -60,6 +60,7 @@ import {
   bookOutline,
   calendarOutline,
   cartOutline,
+  fileTrayStackedOutline,
   cloudDownloadOutline,
   compassOutline,
   constructOutline,
@@ -165,6 +166,7 @@ export class AppComponent {
       bookOutline,
       calendarOutline,
       cartOutline,
+      fileTrayStackedOutline,
       cloudDownloadOutline,
       compassOutline,
       constructOutline,
@@ -363,6 +365,7 @@ export class AppComponent {
     const shopping = await this.translate
       .get("pages.app.nav.shopping")
       .toPromise();
+    const pantry = await this.translate.get("pages.app.nav.pantry").toPromise();
     const meals = await this.translate.get("pages.app.nav.meals").toPromise();
     const tools = await this.translate.get("pages.app.nav.tools").toPromise();
     const settings = await this.translate
@@ -467,6 +470,15 @@ export class AppComponent {
           title: shopping,
           icon: "cart-outline",
           url: RouteMap.ShoppingListsPage.getPath(),
+        },
+      ],
+      [
+        true,
+        {
+          id: "pantry",
+          title: pantry,
+          icon: "file-tray-stacked-outline",
+          url: RouteMap.PantryPage.getPath(),
         },
       ],
       [

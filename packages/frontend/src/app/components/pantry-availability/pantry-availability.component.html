@@ -1,0 +1,40 @@
+@if (matches(); as matchList) {
+  <ion-item lines="none" button (click)="toggleExpanded()">
+    <ion-icon name="file-tray-stacked-outline" slot="start"></ion-icon>
+    <ion-label>
+      <ion-badge color="primary">
+        {{
+          "components.pantryAvailability.badge"
+            | translate: { inStock: inStockCount(), total: matchList.length }
+        }}
+      </ion-badge>
+    </ion-label>
+  </ion-item>
+
+  @if (expanded()) {
+    @for (match of matchList; track match.ingredient) {
+      <ion-item
+        lines="none"
+        class="availability-line"
+        button
+        (click)="overrideMatch(match)"
+      >
+        <ion-icon
+          [name]="iconFor(match)"
+          [color]="colorFor(match)"
+          slot="start"
+        ></ion-icon>
+        <ion-label class="ion-text-wrap">
+          <p>
+            {{ match.ingredient }}
+            @if (match.lowFill) {
+              <ion-badge color="warning">
+                {{ "components.pantryAvailability.lowFill" | translate }}
+              </ion-badge>
+            }
+          </p>
+        </ion-label>
+      </ion-item>
+    }
+  }
+}

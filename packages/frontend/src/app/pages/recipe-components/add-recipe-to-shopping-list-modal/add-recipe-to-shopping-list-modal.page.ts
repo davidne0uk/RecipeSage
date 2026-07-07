@@ -24,7 +24,9 @@ import type { RecipeSummary, ShoppingListSummary } from "@recipesage/prisma";
 import {
   SHOPPING_LIST_ITEMS_TITLE_LENGTH_LIMIT,
   ParsedIngredient,
+  stripIngredient,
 } from "@recipesage/util/shared";
+import { TRPCService } from "../../../services/trpc.service";
 import {
   IonHeader,
   IonToolbar,
@@ -73,6 +75,7 @@ export class AddRecipeToShoppingListModalPage {
   alertCtrl = inject(AlertController);
   modalCtrl = inject(ModalController);
   serverActionsService = inject(ServerActionsService);
+  private trpcService = inject(TRPCService);
   private injector = inject(Injector);
 
   @Input({
@@ -178,11 +181,86 @@ export class AddRecipeToShoppingListModalPage {
         items,
       });
 
+    if (response) {
+      await this.markItemsAlreadyInPantry(
+        this.destinationShoppingList.id,
+        Object.keys(this.selectedIngredientsByRecipe),
+      );
+    }
+
     this.saving = false;
     loading.dismiss();
     if (!response) return;
 
     this.modalCtrl.dismiss();
+  }
+
+  /**
+   * Marks freshly added items that are already in pantry stock as completed
+   * (snapshot at add-time). Visible-but-precompleted rather than omitted, so
+   * the user can un-complete to shop for them anyway. Never blocks the save:
+   * any pantry error (not configured, unreachable) silently skips this step.
+   */
+  private async markItemsAlreadyInPantry(
+    shoppingListId: string,
+    recipeIds: string[],
+  ): Promise<void> {
+    try {
+      const silent = () => {};
+      const handlers = { 412: silent, 404: silent, 500: silent, 0: silent };
+
+      const ownedNames = new Set<string>();
+      for (const recipeId of recipeIds) {
+        const matches = await this.serverActionsService.pantry.matchIngredients(
+          { recipeId },
+          handlers,
+        );
+        for (const match of matches || []) {
+          if (match.inStock) {
+            ownedNames.add(match.strippedName.toLowerCase());
+          }
+        }
+      }
+      if (ownedNames.size === 0) return;
+
+      const listItems =
+        await this.trpcService.trpc.shoppingLists.getShoppingListItems
+          .query({ shoppingListId })
+          .catch(() => undefined);
+      if (!listItems) return;
+
+      const recipeIdSet = new Set(recipeIds);
+      const itemsToComplete = listItems.filter(
+        (item) =>
+          !item.completed &&
+          item.recipeId &&
+          recipeIdSet.has(item.recipeId) &&
+          ownedNames.has(stripIngredient(item.title).toLowerCase()),
+      );
+      if (itemsToComplete.length === 0) return;
+
+      await this.serverActionsService.shoppingLists.updateShoppingListItems({
+        shoppingListId,
+        items: itemsToComplete.map((item) => ({
+          id: item.id,
+          completed: true,
+        })),
+      });
+
+      const message = await this.translate
+        .get("pages.addRecipeToShoppingListModal.alreadyHave", {
+          count: itemsToComplete.length,
+        })
+        .toPromise();
+      const toast = await this.toastCtrl.create({
+        message,
+        duration: 5000,
+      });
+      await toast.present();
+    } catch (e) {
+      // Advisory only — never block adding to the shopping list
+      console.warn("Pantry pre-completion skipped", e);
+    }
   }
 
   async createShoppingList() {

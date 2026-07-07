@@ -1,0 +1,30 @@
+<ion-header>
+  <ion-toolbar color="nav">
+    <ion-buttons slot="start">
+      <ion-back-button></ion-back-button>
+    </ion-buttons>
+
+    <ion-title> {{ "pages.pantryScan.title" | translate }} </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-segment [value]="mode()" (ionChange)="onModeChange($event)">
+    <ion-segment-button value="add">
+      <ion-label>{{ "pages.pantryScan.mode.add" | translate }}</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="consume">
+      <ion-label>{{ "pages.pantryScan.mode.consume" | translate }}</ion-label>
+    </ion-segment-button>
+  </ion-segment>
+
+  <div class="video-wrapper">
+    <video #video autoplay muted playsinline></video>
+  </div>
+
+  @if (cameraError()) {
+    <ion-note color="danger" class="ion-padding">
+      {{ "pages.pantryScan.cameraError" | translate }}
+    </ion-note>
+  }
+</ion-content>
