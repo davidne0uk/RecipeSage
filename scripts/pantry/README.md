@@ -18,10 +18,13 @@ via `docker-compose.pantry.yml`. The webcam scanner runs on the Pi host via
 
 ## Validation checklist (design open questions — record results here)
 
-- [ ] **Decode rate**: scan 20+ real items — flat boxes, tins (curved), jars,
-      crinkled pouches, chilled items (condensation). Record success/fail per
-      packaging type. Tune camera distance/lighting; a desk lamp aimed at the
-      scan spot helps more than camera quality.
+- [x] **Decode rate**: RESULT (2026-07-07, Logitech C920): FAIL — only one
+      oversized barcode decoded across ~20 real items, despite autofocus
+      fixes, 1080p capture, and an aimed scan spot. Webcam decoding requires
+      lab-grade focus/light/framing per item. DECISION: pivot to a USB HID
+      barcode scanner (keyboard-wedge, ~£20) via `scan-hid.py` as the
+      station's primary input; `scan-webcam.sh` retained as a zero-cost
+      fallback for cameras/settings that can manage it.
 - [ ] **OFF hit rate**: of the successfully decoded barcodes, how many did
       Barcode Buddy resolve via Open Food Facts (UK store-brand coverage)?
       Unresolved barcodes appear in Barcode Buddy's "new/unknown" list.

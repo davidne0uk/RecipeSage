@@ -53,16 +53,22 @@ location when you confirm them in the app.)
 > own printable command page under its UI) and adjust the constants in
 > `pantry-command-card.page.ts` if they differ.
 
-## 5. Scanner station (Pi + webcam + speaker)
+## 5. Scanner station (Pi + USB barcode scanner)
 
-1. Position the webcam pointing at a fixed "scan spot" with good light — a
-   cheap desk lamp aimed at the spot improves decode rates more than a better
-   camera. 10–20cm from the barcode works well for typical 720p webcams.
-2. Install host dependencies: `sudo apt install zbar-tools curl sox`
-3. Create a Barcode Buddy API key (its UI → API) and test:
-   `BBUDDY_URL=http://localhost:9284/ BBUDDY_API_KEY=... ./scripts/pantry/scan-webcam.sh`
-4. Wave a tin at the camera: high double-beep = stocked, low tone = failed.
-5. Once happy, run it as a service. Example systemd unit
+Use a dedicated USB HID barcode scanner (keyboard-wedge mode, ~£20; get a
+2D imager rather than laser-only for phone/loyalty codes later). Webcams
+were validated and rejected: real packaging (curved tins, glossy jars,
+pouches) decodes unreliably even with autofocus, 1080p, and good light —
+scanner hardware solves all of that with its own optics, illumination, and
+beeper.
+
+1. Plug the scanner in, then:
+   `sudo apt install python3-evdev`
+2. Create a Barcode Buddy API key (its UI → API) and test:
+   `BBUDDY_URL=http://localhost:9284/ BBUDDY_API_KEY=... sudo -E ./scripts/pantry/scan-hid.py`
+3. Scan a tin: the scanner's own beep confirms the read; the script log
+   confirms delivery to Barcode Buddy.
+4. Once happy, run it as a service. Example systemd unit
    (`/etc/systemd/system/pantry-scanner.service`):
 
    ```ini
@@ -73,7 +79,7 @@ location when you confirm them in the app.)
    [Service]
    Environment=BBUDDY_URL=http://localhost:9284/
    Environment=BBUDDY_API_KEY=changeme
-   ExecStart=/path/to/recipesage/scripts/pantry/scan-webcam.sh
+   ExecStart=/usr/bin/python3 /path/to/recipesage/scripts/pantry/scan-hid.py
    Restart=always
    RestartSec=5
    User=pi
