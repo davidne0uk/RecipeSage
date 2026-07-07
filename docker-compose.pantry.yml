@@ -36,7 +36,9 @@ services:
       - "9283:80"
     stop_grace_period: 1s
   barcodebuddy:
-    image: f0rc3/barcodebuddy-docker:latest
+    # Not multi-arch: tags are per-architecture. amd64 = v1.8.1.5,
+    # arm64 (Raspberry Pi) = arm64v8-v1.8.1.5 — set BARCODEBUDDY_TAG in .env.
+    image: f0rc3/barcodebuddy-docker:${BARCODEBUDDY_TAG:-v1.8.1.5}
     depends_on:
       - grocy
     environment:

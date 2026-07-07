@@ -11,9 +11,12 @@ checklist).
 docker compose -f docker-compose.yml -f docker-compose.pantry.yml up -d
 ```
 
-On a Raspberry Pi (4 or 5, 4GB+ recommended) all images in the pantry overlay
-are multi-arch; verify with `docker compose ... pull` completing without
-platform errors.
+On a Raspberry Pi (4 or 5, 4GB+ recommended) set `BARCODEBUDDY_TAG=arm64v8-v1.8.1.5`
+in `.env` first — Barcode Buddy publishes per-architecture tags rather than a
+multi-arch manifest. Every other image is confirmed multi-arch (arm64):
+`linuxserver/grocy`, `postgres:16.1`, `valkey/valkey`, `nginx`,
+`julianpoy/pushpin:2023-09-17`, and `julianpoy/grocery-categorizer:f9d9562`
+(verified against the registry manifest lists, 2026-07).
 
 ## 2. Connect Grocy
 
