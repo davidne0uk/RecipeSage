@@ -14,6 +14,9 @@ services:
     image: julianpoy/recipesage-selfhost-proxy:v4.0.0
     ports:
       - "7270:80"
+    volumes:
+      # /app/-aware routing for current frontend builds (see proxy.conf)
+      - ./proxy.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - static
       - api
@@ -22,6 +25,9 @@ services:
 
   static:
     image: ghcr.io/davidne0uk/recipesage:static-smart-pantry
+    volumes:
+      # SPA fallback for Angular routes on refresh/deep link
+      - ./static.conf:/etc/nginx/conf.d/default.conf:ro
     restart: unless-stopped
 
   api:
