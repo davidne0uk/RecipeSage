@@ -1,0 +1,157 @@
+# Smart pantry NAS stack (Dockge-ready): the full RecipeSage fork plus the
+# Grocy stock engine and Barcode Buddy. Derived from upstream's selfhost
+# compose, updated for this fork's current architecture (valkey job queue,
+# Postgres-native search — no typesense) and amd64 (Intel NAS).
+#
+# See README.md in this directory for setup. Values in ${...} come from the
+# stack's .env (Dockge's environment editor).
+#
+# The kitchen Pi runs only scripts/pantry/scan-hid.py, pointing
+# BBUDDY_URL at http://<nas>:9284/.
+
+services:
+  proxy:
+    image: julianpoy/recipesage-selfhost-proxy:v4.0.0
+    ports:
+      - "7270:80"
+    depends_on:
+      - static
+      - api
+      - pushpin
+    restart: unless-stopped
+
+  static:
+    image: ghcr.io/davidne0uk/recipesage:static-smart-pantry
+    restart: unless-stopped
+
+  api:
+    image: ghcr.io/davidne0uk/recipesage:api-smart-pantry
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_started
+      pushpin:
+        condition: service_started
+      grocery-categorizer:
+        condition: service_started
+    command: sh -c "npx prisma migrate deploy && npx nx seed prisma && node dist/apps/backend/main.cjs"
+    environment:
+      - NODE_ENV=selfhost
+      - VERBOSE=false
+      - VERSION=smart-pantry
+      - API_PUBLIC_BASE_URL=${API_PUBLIC_BASE_URL}
+      - STORAGE_TYPE=filesystem
+      - FILESYSTEM_STORAGE_PATH=/rs-media
+      - POSTGRES_DB=recipesage_selfhost
+      - POSTGRES_USER=recipesage_selfhost
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_PORT=5432
+      - POSTGRES_HOST=postgres
+      - POSTGRES_SSL=false
+      - POSTGRES_LOGGING=false
+      - DATABASE_URL=postgresql://recipesage_selfhost:${POSTGRES_PASSWORD}@postgres:5432/recipesage_selfhost
+      - GRIP_URL=http://pushpin:5561/
+      - GRIP_KEY=${GRIP_KEY}
+      - JOB_QUEUE_REDIS_HOST=valkey
+      - GROCERY_CATEGORIZER_URL=http://grocery-categorizer:8000/
+      - BROWSERLESS_HOST=browserless
+      - BROWSERLESS_PORT=3000
+      # AI features (assistant, vision, pantry photo flows). Provider is
+      # pluggable: openrouter / openai / anthropic / google.
+      - AI_PROVIDER=${AI_PROVIDER:-openrouter}
+      - AI_API_KEY=${AI_API_KEY:-}
+      # Smart pantry: Grocy stock engine connection
+      - GROCY_URL=http://grocy:80/
+      - GROCY_API_KEY=${GROCY_API_KEY:-}
+    volumes:
+      - apimedia:/rs-media
+    restart: unless-stopped
+
+  pushpin:
+    image: julianpoy/pushpin:2023-09-17
+    entrypoint: /bin/sh -c
+    command:
+      [
+        'sed -i "s/sig_key=changeme/sig_key=$$GRIP_KEY/" /etc/pushpin/pushpin.conf && echo "* $${TARGET},over_http" > /etc/pushpin/routes && pushpin --merge-output',
+      ]
+    environment:
+      - GRIP_KEY=${GRIP_KEY}
+      - TARGET=api:3000
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16.1
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
+    environment:
+      - POSTGRES_DB=recipesage_selfhost
+      - POSTGRES_USER=recipesage_selfhost
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - PGUSER=recipesage_selfhost
+    volumes:
+      - postgresdata:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready",
+          "-d",
+          "recipesage_selfhost",
+          "-U",
+          "recipesage_selfhost",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  valkey:
+    image: valkey/valkey
+    restart: unless-stopped
+
+  browserless:
+    image: ghcr.io/browserless/chromium:v2.24.3
+    environment:
+      - MAX_CONCURRENT_SESSIONS=3
+      - MAX_QUEUE_LENGTH=10
+    restart: unless-stopped
+
+  grocery-categorizer:
+    image: julianpoy/grocery-categorizer:f9d9562
+    restart: unless-stopped
+
+  grocy:
+    image: lscr.io/linuxserver/grocy:latest
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    volumes:
+      - grocydata:/config
+    ports:
+      - "9283:80"
+    restart: unless-stopped
+
+  barcodebuddy:
+    # Per-architecture tags; amd64 for the NAS
+    image: f0rc3/barcodebuddy-docker:${BARCODEBUDDY_TAG:-v1.8.1.5}
+    depends_on:
+      - grocy
+    environment:
+      - TZ=Europe/London
+      - ATTACH_BARCODESCANNER=false
+    volumes:
+      - barcodebuddydata:/config
+    ports:
+      - "9284:80"
+    restart: unless-stopped
+
+volumes:
+  apimedia:
+  postgresdata:
+  grocydata:
+  barcodebuddydata:

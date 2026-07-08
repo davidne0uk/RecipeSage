@@ -5,6 +5,12 @@ One-time setup for the pantry feature: Grocy (stock engine), Barcode Buddy
 `docs/pantry-backup.md` and `scripts/pantry/README.md` (hardware validation
 checklist).
 
+> **Recommended deployment**: run the entire stack on an always-on amd64 box
+> (NAS with Dockge/compose) using `deploy/nas/` — prebuilt fork images from
+> GHCR, ZFS-snapshot-friendly volumes, and the Pi reduced to a USB-scanner
+> endpoint. The sections below describe the components generically; the
+> compose files referenced in §1 are for single-host/dev setups.
+
 ## 1. Start the stack
 
 ```sh
