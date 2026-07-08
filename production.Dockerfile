@@ -39,6 +39,11 @@ RUN pnpm exec prisma generate
 
 RUN pnpm exec nx run-many -t build -p backend,queue-worker,cli --parallel=3
 
+# BullMQ's sandboxed-worker helper is resolved relative to the bundled
+# backend (/app/dist/cjs/...) rather than the bullmq package; link it to the
+# real location so the job queue can spawn its worker process.
+RUN ln -sfn /app/node_modules/bullmq/dist/cjs /app/dist/cjs
+
 ARG VERSION
 ENV VERSION=$VERSION
 ENV NX_SKIP_NX_CACHE=true

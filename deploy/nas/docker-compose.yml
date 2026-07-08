@@ -35,7 +35,10 @@ services:
         condition: service_started
       grocery-categorizer:
         condition: service_started
-    command: sh -c "npx prisma migrate deploy && npx nx seed prisma && node dist/apps/backend/main.cjs"
+    # The ln fixes BullMQ's sandboxed-worker helper lookup: bundled code
+    # resolves it relative to the bundle (/app/dist/cjs/...) instead of the
+    # bullmq package.
+    command: sh -c "ln -sfn /app/node_modules/bullmq/dist/cjs /app/dist/cjs && npx prisma migrate deploy && npx nx seed prisma && node dist/apps/backend/main.cjs"
     environment:
       - NODE_ENV=selfhost
       - VERBOSE=false
@@ -58,9 +61,20 @@ services:
       - BROWSERLESS_HOST=browserless
       - BROWSERLESS_PORT=3000
       # AI features (assistant, vision, pantry photo flows). Provider is
-      # pluggable: openrouter / openai / anthropic / google.
+      # pluggable: openrouter / openai / anthropic / google. The AI_MODEL_*
+      # vars are required by the app's config even when unused (its built-in
+      # defaults only apply under NODE_ENV=test).
       - AI_PROVIDER=${AI_PROVIDER:-openrouter}
       - AI_API_KEY=${AI_API_KEY:-}
+      - AI_MODEL_WEBPAGE=${AI_MODEL_WEBPAGE:-google/gemini-2.5-flash-lite}
+      - AI_MODEL_TEXT=${AI_MODEL_TEXT:-google/gemini-2.5-flash-lite}
+      - AI_MODEL_OCR=${AI_MODEL_OCR:-google/gemini-2.5-flash}
+      - AI_MODEL_DOCUMENT=${AI_MODEL_DOCUMENT:-google/gemini-2.5-flash}
+      - AI_MODEL_VISION=${AI_MODEL_VISION:-anthropic/claude-sonnet-4.6}
+      - AI_MODEL_MODERATION=${AI_MODEL_MODERATION:-google/gemini-2.5-flash}
+      - AI_MODEL_NUTRITION=${AI_MODEL_NUTRITION:-google/gemini-2.5-flash-lite}
+      - AI_MODEL_ASSISTANT=${AI_MODEL_ASSISTANT:-anthropic/claude-sonnet-4.6}
+      - AI_MODEL_ASSISTANT_LOW=${AI_MODEL_ASSISTANT_LOW:-google/gemini-2.5-flash}
       # Smart pantry: Grocy stock engine connection
       - GROCY_URL=http://grocy:80/
       - GROCY_API_KEY=${GROCY_API_KEY:-}
