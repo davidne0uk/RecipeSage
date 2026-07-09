@@ -41,10 +41,19 @@ for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
 
 
 def find_scanner() -> str:
+    # Keyboard-wedge scanners enumerate as USB keyboards; on a headless
+    # station the only "keyboard" is the scanner. /dev/input/by-id/ paths are
+    # stable across reboots and re-plugs, so prefer those.
+    by_id = "/dev/input/by-id"
+    if os.path.isdir(by_id):
+        for entry in sorted(os.listdir(by_id)):
+            if entry.endswith("-event-kbd"):
+                return os.path.join(by_id, entry)
+
     devices = [InputDevice(path) for path in list_devices()]
     for device in devices:
         name = device.name.lower()
-        if "barcode" in name or "scanner" in name or "keyboard" in name:
+        if any(hint in name for hint in ("barcode", "scanner", "keyboard", "kbw")):
             return device.path
     listing = "\n".join(f"  {d.path}  {d.name}" for d in devices)
     sys.exit(
