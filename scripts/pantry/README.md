@@ -25,9 +25,11 @@ via `docker-compose.pantry.yml`. The webcam scanner runs on the Pi host via
       barcode scanner (keyboard-wedge, ~£20) via `scan-hid.py` as the
       station's primary input; `scan-webcam.sh` retained as a zero-cost
       fallback for cameras/settings that can manage it.
-- [ ] **OFF hit rate**: of the successfully decoded barcodes, how many did
-      Barcode Buddy resolve via Open Food Facts (UK store-brand coverage)?
-      Unresolved barcodes appear in Barcode Buddy's "new/unknown" list.
+- [x] **OFF hit rate**: RESULT (2026-07-09, USB HID scanner, UK groceries):
+      5/6 (83%) named automatically by Open Food Facts; the miss was a
+      store own-brand item, left in Barcode Buddy's unknown list for one-time
+      naming via the app. Decode rate with the Totinfo TOT2D 2D imager: 6/6
+      at ~4s/item across mixed packaging — the USB scanner pivot validated.
 - [x] **Command barcode grammar** (VERIFIED 2026-07-07: BBUDDY-P/C/O/CS/CA/Q-/AS/I via /api/system/barcodes; NO location commands exist in 1.8.1.5 — location cards dropped): confirm the exact `BBUDDY-*` command set of
       the installed Barcode Buddy version (Barcode Buddy UI has a built-in
       command barcode page you can print). Needed: consume mode, add/purchase
