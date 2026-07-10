@@ -88,6 +88,32 @@ except through the tunnel — do **not** re-publish `proxy`'s port or router-for
    bring-up before the tunnel exists, you can temporarily publish the proxy port to
    reach the app — but remove it before trusting `cf-connecting-ip`.
 
+## Adding users after registration is disabled
+
+With `DISABLE_REGISTRATION=true` there is no self-service signup and no admin UID
+in this fork. Cloudflare Access already gates _who can reach_ the signup page, so
+the simplest safe way to add a household member is a brief, Access-scoped re-open:
+
+1. Add the person's email to the Cloudflare Access application policy.
+2. Re-enable signup and restart the api (env is read at container start):
+
+   ```sh
+   cd /mnt/Vol1/docker/stacks/recipesage-pantry
+   sed -i 's/^DISABLE_REGISTRATION=.*/DISABLE_REGISTRATION=false/' .env
+   docker compose up -d api
+   ```
+
+3. Have them open the site, pass the Access email check, and sign up.
+4. Close it again:
+
+   ```sh
+   sed -i 's/^DISABLE_REGISTRATION=.*/DISABLE_REGISTRATION=true/' .env
+   docker compose up -d api
+   ```
+
+The open window is reachable only by identities already allowed through Access,
+not the public internet.
+
 ## Backups
 
 Everything stateful lives in this stack's named volumes (`postgresdata`,
