@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# Seeds Grocy with the default pantry locations and container quantity units.
+# Seeds Grocy with the single pantry location and the container quantity units.
 # Idempotent: existing entries with the same name are skipped.
+#
+# All pantry stock lives in one location. The backend creates it on demand, so
+# seeding it here only saves the first product creation a round trip.
 #
 # Usage:
 #   GROCY_URL=http://localhost:9283/ GROCY_API_KEY=xxx ./scripts/pantry/seed-grocy.sh
@@ -33,9 +36,7 @@ seed() { # $1 = entity, $2 = name, $3 = json body
   fi
 }
 
-for name in "Fridge" "Freezer" "Pantry" "Herb drawer" "Tin drawer"; do
-  seed locations "$name" "{\"name\":\"${name}\"}"
-done
+seed locations "Pantry" '{"name":"Pantry"}'
 
 seed quantity_units "Jar" '{"name":"Jar","name_plural":"Jars"}'
 seed quantity_units "Bottle" '{"name":"Bottle","name_plural":"Bottles"}'

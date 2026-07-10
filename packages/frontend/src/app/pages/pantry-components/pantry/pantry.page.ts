@@ -9,7 +9,6 @@ import {
   NavController,
   ModalController,
   ToastController,
-  AlertController,
   ActionSheetController,
 } from "@ionic/angular/standalone";
 import { TranslateService } from "@ngx-translate/core";
@@ -36,20 +35,16 @@ import {
   IonListHeader,
   IonList,
   IonItem,
-  IonItemGroup,
-  IonItemDivider,
   IonLabel,
   IonBadge,
   IonFab,
   IonFabButton,
   IonSpinner,
-  IonNote,
 } from "@ionic/angular/standalone";
 import {
   addOutline,
   barcodeOutline,
   cameraOutline,
-  ellipsisHorizontal,
   fileTrayStackedOutline,
   optionsOutline,
   printOutline,
@@ -57,7 +52,7 @@ import {
 import { addIcons } from "ionicons";
 
 type PantryView = RouterOutputs["pantry"]["getPantry"];
-type PantryItemView = PantryView[number]["items"][number];
+type PantryItemView = PantryView[number];
 
 const FILL_LEVELS: PantryFillLevel[] = [
   PantryFillLevel.Full,
@@ -87,21 +82,17 @@ const FILL_LEVELS: PantryFillLevel[] = [
     IonListHeader,
     IonList,
     IonItem,
-    IonItemGroup,
-    IonItemDivider,
     IonLabel,
     IonBadge,
     IonFab,
     IonFabButton,
     IonSpinner,
-    IonNote,
   ],
 })
 export class PantryPage {
   navCtrl = inject(NavController);
   modalCtrl = inject(ModalController);
   toastCtrl = inject(ToastController);
-  alertCtrl = inject(AlertController);
   actionSheetCtrl = inject(ActionSheetController);
   loadingService = inject(LoadingService);
   utilService = inject(UtilService);
@@ -120,7 +111,6 @@ export class PantryPage {
       addOutline,
       barcodeOutline,
       cameraOutline,
-      ellipsisHorizontal,
       fileTrayStackedOutline,
       optionsOutline,
       printOutline,
@@ -181,113 +171,6 @@ export class PantryPage {
     if (data?.created) void this.load();
   }
 
-  async newLocation() {
-    const alert = await this.alertCtrl.create({
-      header: this.translate.instant("pages.pantry.newLocation"),
-      inputs: [
-        {
-          name: "name",
-          type: "text",
-          placeholder: this.translate.instant("pages.pantry.newLocation.name"),
-        },
-      ],
-      buttons: [
-        { text: this.translate.instant("generic.cancel"), role: "cancel" },
-        {
-          text: this.translate.instant("generic.save"),
-          handler: (values) => {
-            const name = (values.name || "").trim();
-            if (!name) return false;
-            void this.serverActionsService.pantry
-              .createLocation({ name })
-              .then((result) => result && this.load());
-            return true;
-          },
-        },
-      ],
-    });
-    await alert.present();
-  }
-
-  async locationOptions(location: PantryView[number]["location"]) {
-    const sheet = await this.actionSheetCtrl.create({
-      header: location.name,
-      buttons: [
-        {
-          text: this.translate.instant("pages.pantry.renameLocation"),
-          handler: () => void this.renameLocation(location),
-        },
-        {
-          text: this.translate.instant("pages.pantry.deleteLocation"),
-          role: "destructive",
-          handler: () => void this.deleteLocation(location),
-        },
-        { text: this.translate.instant("generic.cancel"), role: "cancel" },
-      ],
-    });
-    await sheet.present();
-  }
-
-  private async renameLocation(location: PantryView[number]["location"]) {
-    const alert = await this.alertCtrl.create({
-      header: this.translate.instant("pages.pantry.renameLocation"),
-      inputs: [{ name: "name", type: "text", value: location.name }],
-      buttons: [
-        { text: this.translate.instant("generic.cancel"), role: "cancel" },
-        {
-          text: this.translate.instant("generic.save"),
-          handler: (values) => {
-            const name = (values.name || "").trim();
-            if (!name) return false;
-            void this.serverActionsService.pantry
-              .renameLocation({ locationId: location.id, name })
-              .then(() => this.load());
-            return true;
-          },
-        },
-      ],
-    });
-    await alert.present();
-  }
-
-  private async deleteLocation(location: PantryView[number]["location"]) {
-    const entry = this.pantry()?.find(
-      (candidate) => candidate.location.id === location.id,
-    );
-    const hasItems = !!entry && entry.items.length > 0;
-
-    if (!hasItems) {
-      await this.serverActionsService.pantry.deleteLocation({
-        locationId: location.id,
-      });
-      void this.load();
-      return;
-    }
-
-    const destinations = (this.pantry() || [])
-      .map((candidate) => candidate.location)
-      .filter((candidate) => candidate.id !== location.id);
-
-    const sheet = await this.actionSheetCtrl.create({
-      header: this.translate.instant("pages.pantry.deleteLocation.moveTo"),
-      buttons: [
-        ...destinations.map((destination) => ({
-          text: destination.name,
-          handler: () => {
-            void this.serverActionsService.pantry
-              .deleteLocation({
-                locationId: location.id,
-                moveItemsToLocationId: destination.id,
-              })
-              .then(() => this.load());
-          },
-        })),
-        { text: this.translate.instant("generic.cancel"), role: "cancel" },
-      ],
-    });
-    await sheet.present();
-  }
-
   async itemOptions(item: PantryItemView) {
     const isContainer = !!item.fillLevel;
 
@@ -301,7 +184,6 @@ export class PantryPage {
               this.serverActionsService.pantry.addStock({
                 productId: item.productId,
                 amount: 1,
-                locationId: item.locationId,
               }),
             ),
         },
@@ -330,10 +212,6 @@ export class PantryPage {
             ]
           : []),
         {
-          text: this.translate.instant("pages.pantry.item.move"),
-          handler: () => void this.moveItem(item),
-        },
-        {
           text: this.translate.instant("pages.pantry.item.consumeAll"),
           role: "destructive",
           handler: () =>
@@ -358,31 +236,6 @@ export class PantryPage {
       loading.dismiss();
     }
     await this.load();
-  }
-
-  private async moveItem(item: PantryItemView) {
-    const destinations = (this.pantry() || [])
-      .map((entry) => entry.location)
-      .filter((location) => location.id !== item.locationId);
-
-    const sheet = await this.actionSheetCtrl.create({
-      header: this.translate.instant("pages.pantry.item.move"),
-      buttons: [
-        ...destinations.map((destination) => ({
-          text: destination.name,
-          handler: () => {
-            void this.mutateAndReload(() =>
-              this.serverActionsService.pantry.moveItem({
-                productId: item.productId,
-                toLocationId: destination.id,
-              }),
-            );
-          },
-        })),
-        { text: this.translate.instant("generic.cancel"), role: "cancel" },
-      ],
-    });
-    await sheet.present();
   }
 
   async pickFillLevel(item: PantryItemView, suggested?: PantryFillLevel) {

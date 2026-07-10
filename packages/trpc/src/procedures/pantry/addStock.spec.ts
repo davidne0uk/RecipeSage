@@ -19,7 +19,7 @@ describe("addStock", () => {
     grocy.uninstall();
   });
 
-  test("adds stock as a purchase with location and best-before", async ({
+  test("adds stock as a purchase with best-before, at the product's home location", async ({
     trpc,
   }) => {
     grocy.on("POST", "/api/stock/products/10/add", []);
@@ -28,7 +28,6 @@ describe("addStock", () => {
       productId: 10,
       amount: 3,
       bestBeforeDate: "2027-01-01",
-      locationId: 2,
     });
 
     expect(grocy.callsTo("POST", "/api/stock/products/10/add")[0].body).toEqual(
@@ -36,7 +35,6 @@ describe("addStock", () => {
         amount: 3,
         transaction_type: "purchase",
         best_before_date: "2027-01-01",
-        location_id: 2,
       },
     );
   });

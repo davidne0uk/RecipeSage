@@ -1,6 +1,6 @@
 import { describe, expect, vi, beforeEach, afterEach } from "vitest";
 import { test } from "../../testutils";
-import { createGrocyFetchMock } from "./testGrocy";
+import { createGrocyFetchMock, grocyLocation } from "./testGrocy";
 
 vi.hoisted(() => {
   process.env.GROCY_URL = "http://grocy.test/";
@@ -13,24 +13,30 @@ describe("createProduct", () => {
   beforeEach(() => {
     grocy = createGrocyFetchMock();
     grocy.install();
-    grocy.on("POST", "/api/objects/products", { created_object_id: 31 });
+    grocy
+      .on("GET", "/api/objects/locations", [
+        grocyLocation(1, "Fridge"),
+        grocyLocation(4, "Pantry"),
+      ])
+      .on("POST", "/api/objects/products", { created_object_id: 31 });
   });
 
   afterEach(() => {
     grocy.uninstall();
   });
 
-  test("creates a bare product", async ({ trpc }) => {
+  test("creates a bare product against the resolved Pantry location", async ({
+    trpc,
+  }) => {
     const result = await trpc.pantry.createProduct({
       name: "Chopped tomatoes",
-      locationId: 2,
       quantityUnitId: 1,
     });
 
     expect(result).toEqual({ productId: 31 });
     expect(grocy.callsTo("POST", "/api/objects/products")[0].body).toEqual({
       name: "Chopped tomatoes",
-      location_id: 2,
+      location_id: 4,
       qu_id_stock: 1,
       qu_id_purchase: 1,
     });
@@ -42,6 +48,26 @@ describe("createProduct", () => {
     );
   });
 
+  test("creates the Pantry location when the instance has none", async ({
+    trpc,
+  }) => {
+    grocy
+      .on("GET", "/api/objects/locations", [])
+      .on("POST", "/api/objects/locations", { created_object_id: 9 });
+
+    await trpc.pantry.createProduct({
+      name: "Chopped tomatoes",
+      quantityUnitId: 1,
+    });
+
+    expect(grocy.callsTo("POST", "/api/objects/locations")[0].body).toEqual({
+      name: "Pantry",
+    });
+    expect(
+      grocy.callsTo("POST", "/api/objects/products")[0].body,
+    ).toMatchObject({ location_id: 9 });
+  });
+
   test("links a barcode and adds initial stock when provided", async ({
     trpc,
   }) => {
@@ -51,7 +77,6 @@ describe("createProduct", () => {
 
     await trpc.pantry.createProduct({
       name: "Chopped tomatoes",
-      locationId: 2,
       quantityUnitId: 1,
       barcode: "5000237999999",
       initialAmount: 3,
@@ -69,7 +94,6 @@ describe("createProduct", () => {
         amount: 3,
         transaction_type: "purchase",
         best_before_date: "2027-01-01",
-        location_id: 2,
       },
     );
   });

@@ -35,7 +35,6 @@ describe("resolveBarcode", () => {
       product: {
         id: 10,
         name: "Chopped tomatoes",
-        locationId: 2,
         quantityUnitId: 1,
       },
     });

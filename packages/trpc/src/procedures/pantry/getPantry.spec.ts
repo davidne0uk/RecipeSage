@@ -2,7 +2,6 @@ import { describe, expect, vi, beforeEach, afterEach } from "vitest";
 import { test } from "../../testutils";
 import {
   createGrocyFetchMock,
-  grocyLocation,
   grocyProduct,
   grocyStockItem,
 } from "./testGrocy";
@@ -25,42 +24,44 @@ describe("getPantry", () => {
     grocy.uninstall();
   });
 
-  test("groups stock by location with fill buckets for container units", async ({
+  test("returns a flat list sorted by name with fill buckets for container units", async ({
     trpc,
   }) => {
-    const tin = grocyProduct(10, "Chopped tomatoes", 2, 1);
-    const jar = grocyProduct(20, "Oregano", 3, 2);
+    const tin = grocyProduct(10, "Chopped tomatoes", 1, 1);
+    const jar = grocyProduct(20, "Oregano", 1, 2);
     grocy
-      .on("GET", "/api/objects/locations", [
-        grocyLocation(1, "Fridge"),
-        grocyLocation(2, "Tin drawer"),
-        grocyLocation(3, "Herb drawer"),
-      ])
       .on("GET", "/api/objects/quantity_units", [
         { id: 1, name: "Tin", name_plural: "Tins" },
         { id: 2, name: "Jar", name_plural: "Jars" },
       ])
       .on("GET", "/api/stock", [
-        grocyStockItem(tin, 3, "2027-01-01"),
         grocyStockItem(jar, 0.5),
+        grocyStockItem(tin, 3, "2027-01-01"),
       ]);
 
     const pantry = await trpc.pantry.getPantry();
 
-    const byName = Object.fromEntries(
-      pantry.map((entry) => [entry.location.name, entry.items]),
-    );
-    expect(byName["Fridge"]).toEqual([]);
-    expect(byName["Tin drawer"][0]).toMatchObject({
+    expect(pantry.map((item) => item.name)).toEqual([
+      "Chopped tomatoes",
+      "Oregano",
+    ]);
+    expect(pantry[0]).toMatchObject({
       name: "Chopped tomatoes",
       amount: 3,
       fillLevel: null,
       bestBeforeDate: "2027-01-01",
     });
-    expect(byName["Herb drawer"][0]).toMatchObject({
-      name: "Oregano",
-      fillLevel: "half",
-    });
+    expect(pantry[1]).toMatchObject({ name: "Oregano", fillLevel: "half" });
+  });
+
+  test("does not read locations from Grocy", async ({ trpc }) => {
+    grocy
+      .on("GET", "/api/objects/quantity_units", [])
+      .on("GET", "/api/stock", []);
+
+    await trpc.pantry.getPantry();
+
+    expect(grocy.callsTo("GET", "/api/objects/locations").length).toEqual(0);
   });
 
   test("reports the pantry service as unavailable when Grocy is unreachable", async ({

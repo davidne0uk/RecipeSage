@@ -12,7 +12,6 @@ export const resolveBarcodeOutputSchema = z.discriminatedUnion("type", [
     product: z.object({
       id: z.number(),
       name: z.string(),
-      locationId: z.number(),
       quantityUnitId: z.number(),
     }),
   }),
@@ -60,7 +59,6 @@ export const resolveBarcode = authenticatedProcedure
           product: {
             id: product.id,
             name: product.name,
-            locationId: product.locationId,
             quantityUnitId: product.quIdStock,
           },
         };

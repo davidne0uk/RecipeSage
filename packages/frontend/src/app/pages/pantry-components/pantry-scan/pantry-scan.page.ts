@@ -192,16 +192,11 @@ export class PantryScanPage {
     }
   }
 
-  private async applyIntent(product: {
-    id: number;
-    name: string;
-    locationId: number;
-  }) {
+  private async applyIntent(product: { id: number; name: string }) {
     if (this.mode() === "add") {
       await this.serverActionsService.pantry.addStock({
         productId: product.id,
         amount: 1,
-        locationId: product.locationId,
       });
       await this.showToast("pages.pantryScan.added", { name: product.name });
     } else {

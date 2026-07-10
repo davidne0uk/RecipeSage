@@ -16,7 +16,7 @@ describe("pantry without Grocy configured", () => {
       PANTRY_NOT_CONFIGURED_MESSAGE,
     );
     await expect(
-      trpc.pantry.createLocation({ name: "Fridge" }),
+      trpc.pantry.createProduct({ name: "Baked beans", quantityUnitId: 1 }),
     ).rejects.toThrow(PANTRY_NOT_CONFIGURED_MESSAGE);
   });
 

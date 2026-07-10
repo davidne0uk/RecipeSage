@@ -49,17 +49,9 @@ export interface GrocyCreateProductInput {
 export interface GrocyAddStockInput {
   amount: number;
   bestBeforeDate?: string;
-  locationId?: number;
-}
-
-export interface GrocyTransferStockInput {
-  amount: number;
-  fromLocationId: number;
-  toLocationId: number;
 }
 
 export interface GrocySetStockAmountInput {
   newAmount: number;
-  locationId?: number;
   bestBeforeDate?: string;
 }

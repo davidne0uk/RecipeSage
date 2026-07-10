@@ -1,6 +1,6 @@
 import { authenticatedProcedure } from "../../trpc";
 import { z } from "zod";
-import { pantryLocationWithItemsSchema } from "@recipesage/util/shared";
+import { pantryItemSchema } from "@recipesage/util/shared";
 import { buildPantryView } from "@recipesage/util/server/general";
 import { grocyTrpc } from "./common";
 
@@ -10,19 +10,18 @@ export const getPantry = authenticatedProcedure
       method: "GET",
       path: "/pantry/getPantry",
       tags: ["pantry"],
-      summary: "Get all pantry stock grouped by location",
+      summary: "Get all pantry stock",
       protect: true,
     },
   })
-  .output(z.array(pantryLocationWithItemsSchema))
+  .output(z.array(pantryItemSchema))
   .query(async () =>
     grocyTrpc(async (grocy) => {
-      const [locations, stock, quantityUnits] = await Promise.all([
-        grocy.getLocations(),
+      const [stock, quantityUnits] = await Promise.all([
         grocy.getCurrentStock(),
         grocy.getQuantityUnits(),
       ]);
 
-      return buildPantryView(locations, stock, quantityUnits);
+      return buildPantryView(stock, quantityUnits);
     }),
   );

@@ -1,17 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildPantryView } from "./buildPantryView";
-import type {
-  GrocyLocation,
-  GrocyProduct,
-  GrocyQuantityUnit,
-  GrocyStockItem,
-} from "../grocy";
-
-const locations: GrocyLocation[] = [
-  { id: 1, name: "Fridge" },
-  { id: 2, name: "Tin drawer" },
-  { id: 3, name: "Herb drawer" },
-];
+import type { GrocyProduct, GrocyQuantityUnit, GrocyStockItem } from "../grocy";
 
 const units: GrocyQuantityUnit[] = [
   { id: 1, name: "Tin", namePlural: "Tins" },
@@ -21,12 +10,11 @@ const units: GrocyQuantityUnit[] = [
 const product = (
   id: number,
   name: string,
-  locationId: number,
   quIdStock: number,
 ): GrocyProduct => ({
   id,
   name,
-  locationId,
+  locationId: 1,
   quIdStock,
   quIdPurchase: quIdStock,
 });
@@ -43,78 +31,82 @@ const stockItem = (
 });
 
 describe("buildPantryView", () => {
-  it("groups items under their product's location and includes empty locations", () => {
+  it("returns every stocked item in one list sorted by name", () => {
     const view = buildPantryView(
-      locations,
       [
-        stockItem(product(10, "Chopped tomatoes", 2, 1), 3, "2027-01-01"),
-        stockItem(product(11, "Coconut milk", 2, 1), 2),
+        stockItem(product(11, "Coconut milk", 1), 2),
+        stockItem(product(20, "Oregano", 2), 0.5),
+        stockItem(product(10, "Chopped tomatoes", 1), 3, "2027-01-01"),
       ],
       units,
     );
 
-    const byName = Object.fromEntries(
-      view.map((entry) => [entry.location.name, entry.items]),
-    );
-    expect(byName["Tin drawer"].map((item) => item.name)).toEqual([
+    expect(view.map((item) => item.name)).toEqual([
       "Chopped tomatoes",
       "Coconut milk",
+      "Oregano",
     ]);
-    expect(byName["Fridge"]).toEqual([]);
-    expect(byName["Herb drawer"]).toEqual([]);
+    expect(view[0].bestBeforeDate).toEqual("2027-01-01");
+  });
+
+  it("returns an empty list when nothing is in stock", () => {
+    expect(buildPantryView([], units)).toEqual([]);
   });
 
   it("does not assign fill levels to count-based units", () => {
-    const view = buildPantryView(
-      locations,
-      [stockItem(product(10, "Chopped tomatoes", 2, 1), 3)],
+    const [item] = buildPantryView(
+      [stockItem(product(10, "Chopped tomatoes", 1), 3)],
       units,
     );
 
-    const item = view.find((entry) => entry.location.id === 2)?.items[0];
-    expect(item?.fillLevel).toBeNull();
-    expect(item?.amount).toEqual(3);
-    expect(item?.unitName).toEqual("Tin");
+    expect(item.fillLevel).toBeNull();
+    expect(item.amount).toEqual(3);
+    expect(item.unitName).toEqual("Tin");
   });
 
   it("derives fill buckets for container units from the fractional amount", () => {
     const view = buildPantryView(
-      locations,
       [
-        stockItem(product(20, "Oregano", 3, 2), 0.5),
-        stockItem(product(21, "Basil", 3, 2), 0.1),
-        stockItem(product(22, "Thyme", 3, 2), 1),
+        stockItem(product(20, "Oregano", 2), 0.5),
+        stockItem(product(21, "Basil", 2), 0.1),
+        stockItem(product(22, "Thyme", 2), 1),
       ],
       units,
     );
 
-    const herbs = view.find((entry) => entry.location.id === 3)?.items;
-    expect(herbs?.find((i) => i.name === "Oregano")?.fillLevel).toEqual("half");
-    expect(herbs?.find((i) => i.name === "Basil")?.fillLevel).toEqual("low");
-    expect(herbs?.find((i) => i.name === "Thyme")?.fillLevel).toEqual("full");
+    const byName = Object.fromEntries(view.map((item) => [item.name, item]));
+    expect(byName["Oregano"].fillLevel).toEqual("half");
+    expect(byName["Basil"].fillLevel).toEqual("low");
+    expect(byName["Thyme"].fillLevel).toEqual("full");
   });
 
   it("uses the open container's fraction when unopened spares exist", () => {
     // 1 spare full jar + one open jar at a quarter
-    const view = buildPantryView(
-      locations,
-      [stockItem(product(20, "Oregano", 3, 2), 1.25)],
+    const [item] = buildPantryView(
+      [stockItem(product(20, "Oregano", 2), 1.25)],
       units,
     );
 
-    const item = view.find((entry) => entry.location.id === 3)?.items[0];
-    expect(item?.fillLevel).toEqual("quarter");
-    expect(item?.amount).toEqual(1.25);
+    expect(item.fillLevel).toEqual("quarter");
+    expect(item.amount).toEqual(1.25);
   });
 
   it("snaps near-bucket amounts to the nearest bucket", () => {
-    const view = buildPantryView(
-      locations,
-      [stockItem(product(20, "Oregano", 3, 2), 0.8)],
+    const [item] = buildPantryView(
+      [stockItem(product(20, "Oregano", 2), 0.8)],
       units,
     );
 
-    const item = view.find((entry) => entry.location.id === 3)?.items[0];
-    expect(item?.fillLevel).toEqual("threeQuarters");
+    expect(item.fillLevel).toEqual("threeQuarters");
+  });
+
+  it("leaves the unit name empty when the quantity unit is unknown", () => {
+    const [item] = buildPantryView(
+      [stockItem(product(30, "Mystery item", 99), 1)],
+      units,
+    );
+
+    expect(item.unitName).toEqual("");
+    expect(item.fillLevel).toBeNull();
   });
 });

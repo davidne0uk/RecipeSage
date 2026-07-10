@@ -20,7 +20,6 @@ export const addStock = authenticatedProcedure
         .string()
         .regex(/^\d{4}-\d{2}-\d{2}$/)
         .optional(),
-      locationId: z.number().int().positive().optional(),
     }),
   )
   .output(z.void())
@@ -29,7 +28,6 @@ export const addStock = authenticatedProcedure
       grocy.addStock(input.productId, {
         amount: input.amount,
         bestBeforeDate: input.bestBeforeDate,
-        locationId: input.locationId,
       }),
     ),
   );

@@ -94,16 +94,12 @@ export class PantryAvailabilityComponent implements OnInit {
     });
     if (!pantry) return;
 
-    const products = pantry
-      .flatMap((entry) => entry.items)
-      .sort((a, b) => a.name.localeCompare(b.name));
-
     const sheet = await this.actionSheetCtrl.create({
       header: this.translate.instant("components.pantryAvailability.linkItem", {
         ingredient: match.strippedName,
       }),
       buttons: [
-        ...products.map((product) => ({
+        ...pantry.map((product) => ({
           text: product.name,
           handler: () => {
             void this.serverActionsService.pantry

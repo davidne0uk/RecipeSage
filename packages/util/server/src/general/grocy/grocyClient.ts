@@ -8,7 +8,6 @@ import type {
   GrocyQuantityUnit,
   GrocySetStockAmountInput,
   GrocyStockItem,
-  GrocyTransferStockInput,
 } from "./types";
 
 /**
@@ -142,14 +141,6 @@ export class GrocyClient {
     return this.createObject("locations", { name });
   }
 
-  async updateLocation(id: number, name: string): Promise<void> {
-    await this.request("PUT", `objects/locations/${id}`, { name });
-  }
-
-  async deleteLocation(id: number): Promise<void> {
-    await this.request("DELETE", `objects/locations/${id}`);
-  }
-
   async getQuantityUnits(): Promise<GrocyQuantityUnit[]> {
     const raw = await this.request<unknown[]>("GET", "objects/quantity_units");
     return raw.map(mapQuantityUnit);
@@ -166,12 +157,6 @@ export class GrocyClient {
       location_id: input.locationId,
       qu_id_stock: input.quIdStock,
       qu_id_purchase: input.quIdPurchase,
-    });
-  }
-
-  async updateProductLocation(id: number, locationId: number): Promise<void> {
-    await this.request("PUT", `objects/products/${id}`, {
-      location_id: locationId,
     });
   }
 
@@ -223,12 +208,15 @@ export class GrocyClient {
     }
   }
 
+  /**
+   * Stock lands at the product's home location — Grocy defaults `location_id`
+   * to it when the field is omitted.
+   */
   async addStock(productId: number, input: GrocyAddStockInput): Promise<void> {
     await this.request("POST", `stock/products/${productId}/add`, {
       amount: input.amount,
       transaction_type: "purchase",
       best_before_date: input.bestBeforeDate,
-      location_id: input.locationId,
     });
   }
 
@@ -237,17 +225,6 @@ export class GrocyClient {
       amount,
       transaction_type: "consume",
       spoiled: false,
-    });
-  }
-
-  async transferStock(
-    productId: number,
-    input: GrocyTransferStockInput,
-  ): Promise<void> {
-    await this.request("POST", `stock/products/${productId}/transfer`, {
-      amount: input.amount,
-      location_id_from: input.fromLocationId,
-      location_id_to: input.toLocationId,
     });
   }
 
@@ -262,7 +239,6 @@ export class GrocyClient {
     await this.request("POST", `stock/products/${productId}/inventory`, {
       new_amount: input.newAmount,
       best_before_date: input.bestBeforeDate,
-      location_id: input.locationId,
     });
   }
 }

@@ -53,16 +53,9 @@ export const PANTRY_CONTAINER_UNIT_NAMES = ["jar", "bottle"];
 export const isPantryContainerUnit = (unitName: string): boolean =>
   PANTRY_CONTAINER_UNIT_NAMES.includes(unitName.trim().toLowerCase());
 
-export const pantryLocationSchema = z.object({
-  id: z.number(),
-  name: z.string(),
-});
-export type PantryLocation = z.infer<typeof pantryLocationSchema>;
-
 export const pantryItemSchema = z.object({
   productId: z.number(),
   name: z.string(),
-  locationId: z.number(),
   amount: z.number(),
   unitId: z.number(),
   unitName: z.string(),
@@ -74,11 +67,3 @@ export const pantryItemSchema = z.object({
   bestBeforeDate: z.string().nullable(),
 });
 export type PantryItem = z.infer<typeof pantryItemSchema>;
-
-export const pantryLocationWithItemsSchema = z.object({
-  location: pantryLocationSchema,
-  items: z.array(pantryItemSchema),
-});
-export type PantryLocationWithItems = z.infer<
-  typeof pantryLocationWithItemsSchema
->;

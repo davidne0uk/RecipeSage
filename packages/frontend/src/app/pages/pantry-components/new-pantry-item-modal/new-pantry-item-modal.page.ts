@@ -79,12 +79,8 @@ export class NewPantryItemModalPage implements OnInit {
   barcode = "";
   amount = 1;
   bestBeforeDate = "";
-  locationId: number | null = null;
   quantityUnitId: number | null = null;
 
-  locations = signal<RouterOutputs["pantry"]["getLocations"] | undefined>(
-    undefined,
-  );
   quantityUnits = signal<
     RouterOutputs["pantry"]["getQuantityUnits"] | undefined
   >(undefined);
@@ -99,14 +95,8 @@ export class NewPantryItemModalPage implements OnInit {
     this.name = this.prefillName;
     this.barcode = this.prefillBarcode;
 
-    const [locations, quantityUnits] = await Promise.all([
-      this.serverActionsService.pantry.getLocations(),
-      this.serverActionsService.pantry.getQuantityUnits(),
-    ]);
-    if (locations) {
-      this.locations.set(locations);
-      this.locationId = locations[0]?.id ?? null;
-    }
+    const quantityUnits =
+      await this.serverActionsService.pantry.getQuantityUnits();
     if (quantityUnits) {
       this.quantityUnits.set(quantityUnits);
       this.quantityUnitId = quantityUnits[0]?.id ?? null;
@@ -162,7 +152,6 @@ export class NewPantryItemModalPage implements OnInit {
   isFormValid() {
     return (
       this.name.trim().length > 0 &&
-      this.locationId !== null &&
       this.quantityUnitId !== null &&
       this.amount > 0
     );
@@ -175,7 +164,6 @@ export class NewPantryItemModalPage implements OnInit {
 
     const result = await this.serverActionsService.pantry.createProduct({
       name: this.name.trim(),
-      locationId: this.locationId!,
       quantityUnitId: this.quantityUnitId!,
       barcode: this.barcode.trim() || undefined,
       initialAmount: this.amount,

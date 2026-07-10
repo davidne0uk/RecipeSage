@@ -24,50 +24,11 @@ export class PantryActionsService extends ActionsBase {
     );
   }
 
-  getLocations(
-    errorHandlers?: ErrorHandlers,
-  ): Promise<RouterOutputs["pantry"]["getLocations"] | undefined> {
-    return this.passThrough(
-      () => this.trpc.pantry.getLocations.query(),
-      errorHandlers,
-    );
-  }
-
   getQuantityUnits(
     errorHandlers?: ErrorHandlers,
   ): Promise<RouterOutputs["pantry"]["getQuantityUnits"] | undefined> {
     return this.passThrough(
       () => this.trpc.pantry.getQuantityUnits.query(),
-      errorHandlers,
-    );
-  }
-
-  createLocation(
-    input: RouterInputs["pantry"]["createLocation"],
-    errorHandlers?: ErrorHandlers,
-  ): Promise<RouterOutputs["pantry"]["createLocation"] | undefined> {
-    return this.passThrough(
-      () => this.trpc.pantry.createLocation.mutate(input),
-      errorHandlers,
-    );
-  }
-
-  renameLocation(
-    input: RouterInputs["pantry"]["renameLocation"],
-    errorHandlers?: ErrorHandlers,
-  ): Promise<RouterOutputs["pantry"]["renameLocation"] | undefined> {
-    return this.passThrough(
-      () => this.trpc.pantry.renameLocation.mutate(input),
-      errorHandlers,
-    );
-  }
-
-  deleteLocation(
-    input: RouterInputs["pantry"]["deleteLocation"],
-    errorHandlers?: ErrorHandlers,
-  ): Promise<RouterOutputs["pantry"]["deleteLocation"] | undefined> {
-    return this.passThrough(
-      () => this.trpc.pantry.deleteLocation.mutate(input),
       errorHandlers,
     );
   }
@@ -88,16 +49,6 @@ export class PantryActionsService extends ActionsBase {
   ): Promise<RouterOutputs["pantry"]["consumeStock"] | undefined> {
     return this.passThrough(
       () => this.trpc.pantry.consumeStock.mutate(input),
-      errorHandlers,
-    );
-  }
-
-  moveItem(
-    input: RouterInputs["pantry"]["moveItem"],
-    errorHandlers?: ErrorHandlers,
-  ): Promise<RouterOutputs["pantry"]["moveItem"] | undefined> {
-    return this.passThrough(
-      () => this.trpc.pantry.moveItem.mutate(input),
       errorHandlers,
     );
   }

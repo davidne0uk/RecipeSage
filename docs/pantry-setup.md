@@ -32,15 +32,20 @@ multi-arch manifest. Every other image is confirmed multi-arch (arm64):
 3. Put it in `.env` as `GROCY_API_KEY=...` (see `example.env`) and restart:
    `docker compose ... up -d backend barcodebuddy`.
 
-## 3. Seed locations and units
+## 3. Seed the location and units
 
 ```sh
 GROCY_URL=http://<host>:9283/ GROCY_API_KEY=... ./scripts/pantry/seed-grocy.sh
 ```
 
-This creates Fridge, Freezer, Pantry, Herb drawer, and Tin drawer plus the
-container units (Jar, Bottle, Tin, Pack). Add your own locations any time
-from the pantry page (options menu → _New location_).
+This creates the single `Pantry` location plus the container units (Jar,
+Bottle, Tin, Pack).
+
+The pantry has no concept of placement — everything lives in one list. Grocy
+requires a location on every product, so the backend resolves (and creates, if
+missing) a location named `Pantry`; seeding it here just saves the first
+product creation a round trip. Nothing in the app reads or writes locations
+otherwise.
 
 Container units matter: products stocked in **Jar** or **Bottle** display as
 fill levels (Full/¾/½/¼/low) and support photo fill estimation; everything
@@ -50,9 +55,8 @@ else is counted.
 
 Pantry page → options menu → _Print command card_. Laminate it or tape it
 next to the scanner station. Scanning **Add mode** / **Consume mode** changes
-what subsequent item scans do. (Barcode Buddy has no location commands —
-added stock lands at each product's home location, and new items get their
-location when you confirm them in the app.)
+what subsequent item scans do. Barcodes the station cannot resolve are
+recorded by Barcode Buddy for you to name later in the app.
 
 > The card uses Barcode Buddy's default command grammar. During station
 > setup, confirm the grammar against your Barcode Buddy version (it has its
@@ -99,7 +103,7 @@ beeper.
 ## 6. Day-to-day flows
 
 - **Unloading groceries**: scan _Add mode_ once, then beep items through the
-  station. New items appear in the app for confirmation and placement.
+  station. Items the station does not recognise appear in the app for naming.
 - **Cooking**: scan _Consume mode_, beep out what you use — or use the phone:
   pantry page → scan button, with the Adding/Using-up toggle.
 - **Herbs & spices**: open the jar's entry in the pantry page → _Estimate
@@ -110,3 +114,25 @@ beeper.
   or unlink it from a pantry item — links are remembered.
 - **Shopping**: adding a recipe to a shopping list pre-completes items you
   already have; un-tick them to shop for them anyway.
+
+## 7. Migrating an instance created before locations were removed
+
+Earlier versions seeded five storage locations (Fridge, Freezer, Pantry, Herb
+drawer, Tin drawer) and grouped the pantry by them. If your Grocy instance
+predates this change, consolidate it once:
+
+```sh
+# 1. Back up the grocy-data volume first — location deletion is irreversible.
+# 2. Review the plan (dry run; changes nothing):
+GROCY_URL=http://<host>:9283/ GROCY_API_KEY=... ./scripts/pantry/consolidate-locations.sh
+# 3. Execute it:
+GROCY_URL=http://<host>:9283/ GROCY_API_KEY=... ./scripts/pantry/consolidate-locations.sh --apply
+```
+
+It moves every product and its stock into `Pantry`, then deletes the emptied
+locations, refusing to delete any that still hold stock. Re-running it on a
+consolidated instance reports "nothing to do" and exits 0.
+
+The migration is not release-blocking: new code renders the flat list against
+any set of locations and creates new products in `Pantry`. Until you run it,
+Grocy's own UI simply still shows the old locations.

@@ -79,14 +79,14 @@ describe("GrocyClient", () => {
   it("returns the created id from object creation", async () => {
     fetchMock.mockResolvedValue(jsonResponse({ created_object_id: "7" }));
 
-    const result = await client.createLocation("Herb drawer");
+    const result = await client.createLocation("Pantry");
 
     expect(result).toEqual({ id: 7 });
     expect(fetchMock).toHaveBeenCalledWith(
       "http://grocy:80/api/objects/locations",
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({ name: "Herb drawer" }),
+        body: JSON.stringify({ name: "Pantry" }),
       }),
     );
   });
@@ -157,13 +157,12 @@ describe("GrocyClient", () => {
   });
 
   describe("stock mutations", () => {
-    it("adds stock as a purchase transaction", async () => {
+    it("adds stock as a purchase transaction at the product's home location", async () => {
       fetchMock.mockResolvedValue(jsonResponse([]));
 
       await client.addStock(12, {
         amount: 3,
         bestBeforeDate: "2027-01-01",
-        locationId: 5,
       });
 
       expect(fetchMock).toHaveBeenCalledWith(
@@ -174,7 +173,6 @@ describe("GrocyClient", () => {
             amount: 3,
             transaction_type: "purchase",
             best_before_date: "2027-01-01",
-            location_id: 5,
           }),
         }),
       );
