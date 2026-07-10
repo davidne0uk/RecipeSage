@@ -6,6 +6,7 @@ import {
   SessionType,
   generatePasswordHash,
   generateSession,
+  isRegistrationDisabled,
   metrics,
   sanitizeUserEmail,
 } from "@recipesage/util/server/general";
@@ -28,14 +29,10 @@ export const register = publicProcedure
   )
   .output(sessionDTOSchema)
   .mutation(async ({ input }) => {
-    if (process.env.DISABLE_REGISTRATION === "true") {
-      const message =
-        "Registration is disabled via the DISABLE_REGISTRATION environment variable.";
-
-      console.error(message);
+    if (isRegistrationDisabled()) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message,
+        message: "Registration is disabled.",
       });
     }
 

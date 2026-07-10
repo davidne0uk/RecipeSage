@@ -6,12 +6,33 @@ Grocy, Barcode Buddy, and supporting services. The kitchen Pi runs only the
 USB scanner forwarder.
 
 ```
-NAS (amd64):  proxy :7270 → static/api/pushpin
-              grocy :9283, barcodebuddy :9284
+Internet:     https://<cloudflare-hostname>  (Cloudflare Tunnel + Access)
+                    │
+NAS (amd64):  cloudflared → proxy (no host port) → static/api/pushpin
+              grocy :9283, barcodebuddy :9284   (LAN-ONLY, never forwarded)
               postgres, valkey, browserless, grocery-categorizer
-Pi (kitchen): scan-hid.py + USB scanner → http://<nas>:9284/
-Phones:       http://<nas>:7270 (the PWA — the single UI)
+Pi (kitchen): scan-hid.py + USB scanner → http://<nas>:9284/  (LAN)
+Phones:       https://<cloudflare-hostname>  (the PWA — the single UI)
 ```
+
+## External access (Cloudflare Tunnel + Access)
+
+External access is via a Cloudflare Tunnel; **no inbound router port is opened**,
+and the origin proxy has no published host port. Rate limiting trusts the
+`cf-connecting-ip` header, which is only safe because the origin is unreachable
+except through the tunnel — do **not** re-publish `proxy`'s port or router-forward
+`9283`/`9284`.
+
+1. Cloudflare Zero Trust → Networks → Tunnels → create a tunnel; copy its token to
+   the stack `.env` as `CF_TUNNEL_TOKEN`. Add a public hostname route pointing at
+   `http://proxy:80`.
+2. Cloudflare Zero Trust → Access → Applications → add a self-hosted app over the
+   hostname. Pick an identity method (email OTP is simplest) and a **session
+   duration long enough to avoid mid-use `/api/*` redirects** (e.g. 1 month).
+3. If you use public share links (`/api/share/recipe/...`), add an Access **bypass**
+   policy scoped to `/api/share/*`, otherwise recipients get a login prompt.
+4. Non-browser clients (scripts, `/compat/v2`) need an Access **service token**, not
+   the cookie. The kitchen Pi is unaffected — it talks to Barcode Buddy over the LAN.
 
 ## Setup
 
@@ -25,13 +46,18 @@ Phones:       http://<nas>:7270 (the PWA — the single UI)
    `docker-compose.yml`, and set the .env values:
 
    ```env
-   API_PUBLIC_BASE_URL=http://<nas-ip>:7270
+   API_PUBLIC_BASE_URL=https://<cloudflare-hostname>
+   CF_TUNNEL_TOKEN=<from the Cloudflare tunnel>
+   DISABLE_REGISTRATION=true
    POSTGRES_PASSWORD=<generate one>
    GRIP_KEY=<generate one>
    AI_PROVIDER=openrouter
    AI_API_KEY=<key, for assistant + pantry photo flows>
    GROCY_API_KEY=<created in step 3>
    ```
+
+   With `DISABLE_REGISTRATION=true`, create your account before enabling it (or
+   flip it to `false` briefly, register, then set it back and redeploy).
 
 3. **Grocy one-time setup** (same as before, new host):
    - `http://<nas>:9283` → log in admin/admin → change password
@@ -56,8 +82,11 @@ Phones:       http://<nas>:7270 (the PWA — the single UI)
    Then install the systemd unit from `docs/pantry-setup.md` §5 with
    `BBUDDY_URL` pointing at the NAS.
 
-6. **App**: open `http://<nas>:7270`, create your account, and the Pantry
-   entry appears in the menu.
+6. **App**: open `https://<cloudflare-hostname>` (pass the Access prompt), sign in,
+   and the Pantry entry appears in the menu. For first-run account creation with
+   `DISABLE_REGISTRATION=true`, see the note under step 2. During initial LAN-only
+   bring-up before the tunnel exists, you can temporarily publish the proxy port to
+   reach the app — but remove it before trusting `cf-connecting-ip`.
 
 ## Backups
 

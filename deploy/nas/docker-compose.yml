@@ -12,8 +12,11 @@
 services:
   proxy:
     image: julianpoy/recipesage-selfhost-proxy:v4.0.0
-    ports:
-      - "7270:80"
+    # No host port: the origin is reached only through the Cloudflare tunnel.
+    # Publishing 7270 would let anything on the LAN forge cf-connecting-ip and
+    # bypass rate limiting (see docker-compose comments and deploy README).
+    expose:
+      - "80"
     volumes:
       # /app/-aware routing for current frontend builds (see proxy.conf)
       - ./proxy.conf:/etc/nginx/conf.d/default.conf:ro
@@ -21,6 +24,17 @@ services:
       - static
       - api
       - pushpin
+    restart: unless-stopped
+
+  cloudflared:
+    image: cloudflare/cloudflared:2024.6.1
+    command: tunnel --no-autoupdate run
+    environment:
+      # Tunnel token from the Cloudflare Zero Trust dashboard. Configure the
+      # tunnel's public hostname to point at http://proxy:80.
+      - TUNNEL_TOKEN=${CF_TUNNEL_TOKEN}
+    depends_on:
+      - proxy
     restart: unless-stopped
 
   static:
@@ -64,6 +78,16 @@ services:
       - GRIP_KEY=${GRIP_KEY}
       - JOB_QUEUE_REDIS_HOST=valkey
       - GROCERY_CATEGORIZER_URL=http://grocery-categorizer:8000/
+      # Rate limiting: inert unless RATE_LIMIT_REDIS_HOST is set. valkey is
+      # already in the stack. cf-connecting-ip is safe to trust ONLY because the
+      # origin is unreachable except via the Cloudflare tunnel (see below); it is
+      # an ordinary request header that nginx forwards verbatim.
+      - RATE_LIMIT_REDIS_HOST=valkey
+      - RATE_LIMIT_CLIENT_IP_HEADER=cf-connecting-ip
+      # No public self-service registration; create accounts operator-side.
+      - DISABLE_REGISTRATION=${DISABLE_REGISTRATION:-true}
+      # Restrict CORS to the external origin instead of the selfhost allow-all.
+      - CORS_ALLOWLIST=${API_PUBLIC_BASE_URL}
       - BROWSERLESS_HOST=browserless
       - BROWSERLESS_PORT=3000
       # AI features (assistant, vision, pantry photo flows). Provider is
@@ -153,6 +177,9 @@ services:
     volumes:
       - grocydata:/config
     ports:
+      # LAN-ONLY admin UI. This port MUST NOT be router-forwarded or added to
+      # the Cloudflare tunnel — Grocy ships admin/admin and is the pantry's
+      # source of truth. It is reached only from the LAN for occasional admin.
       - "9283:80"
     restart: unless-stopped
 
@@ -167,6 +194,8 @@ services:
     volumes:
       - barcodebuddydata:/config
     ports:
+      # LAN-ONLY. The kitchen Pi posts scans here over the LAN. MUST NOT be
+      # router-forwarded or added to the Cloudflare tunnel.
       - "9284:80"
     restart: unless-stopped
 

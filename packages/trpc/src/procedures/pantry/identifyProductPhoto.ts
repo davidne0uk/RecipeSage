@@ -3,6 +3,8 @@ import { TRPCError } from "@trpc/server";
 import * as Sentry from "@sentry/node";
 import { z } from "zod";
 import { photoToProduct } from "@recipesage/util/server/ml";
+import { recordCreditsSpent } from "@recipesage/util/server/general";
+import { assertCreditsAvailableTrpc } from "@recipesage/util/server/trpc";
 
 /**
  * Identifies a product from a photo as a *proposal* for the user to confirm.
@@ -33,11 +35,17 @@ export const identifyProductPhoto = authenticatedProcedure
       confidence: z.enum(["high", "medium", "low"]),
     }),
   )
-  .mutation(async ({ input }) => {
+  .mutation(async ({ ctx, input }) => {
+    await assertCreditsAvailableTrpc(
+      ctx.session.userId,
+      "pantryIdentifyProduct",
+    );
+
     const imageBuffer = Buffer.from(input.image, "base64");
 
+    let result;
     try {
-      return await photoToProduct(imageBuffer);
+      result = await photoToProduct(imageBuffer);
     } catch (e) {
       Sentry.captureException(e);
       throw new TRPCError({
@@ -45,4 +53,8 @@ export const identifyProductPhoto = authenticatedProcedure
         message: "Photo identification is currently unavailable",
       });
     }
+
+    await recordCreditsSpent(ctx.session.userId, "pantryIdentifyProduct");
+
+    return result;
   });

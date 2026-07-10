@@ -4,6 +4,8 @@ import * as Sentry from "@sentry/node";
 import { z } from "zod";
 import { PantryFillLevel } from "@recipesage/util/shared";
 import { photoToFillLevel } from "@recipesage/util/server/ml";
+import { recordCreditsSpent } from "@recipesage/util/server/general";
+import { assertCreditsAvailableTrpc } from "@recipesage/util/server/trpc";
 
 /**
  * Estimates a container's fill level from a photo as a *proposal* for the
@@ -31,11 +33,17 @@ export const estimateFillLevel = authenticatedProcedure
       confidence: z.enum(["high", "medium", "low"]),
     }),
   )
-  .mutation(async ({ input }) => {
+  .mutation(async ({ ctx, input }) => {
+    await assertCreditsAvailableTrpc(
+      ctx.session.userId,
+      "pantryEstimateFillLevel",
+    );
+
     const imageBuffer = Buffer.from(input.image, "base64");
 
+    let result;
     try {
-      return await photoToFillLevel(imageBuffer);
+      result = await photoToFillLevel(imageBuffer);
     } catch (e) {
       Sentry.captureException(e);
       throw new TRPCError({
@@ -43,4 +51,8 @@ export const estimateFillLevel = authenticatedProcedure
         message: "Fill level estimation is currently unavailable",
       });
     }
+
+    await recordCreditsSpent(ctx.session.userId, "pantryEstimateFillLevel");
+
+    return result;
   });

@@ -77,9 +77,7 @@ describe("register", () => {
             email: faker.internet.email().toLowerCase(),
             password: faker.internet.password({ length: 12 }),
           }),
-        ).rejects.toThrow(
-          "Registration is disabled via the DISABLE_REGISTRATION environment variable.",
-        );
+        ).rejects.toThrow("Registration is disabled.");
       } finally {
         vi.unstubAllEnvs();
       }

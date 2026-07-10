@@ -7,6 +7,7 @@ import {
   SessionType,
   generateSession,
   config,
+  isRegistrationDisabled,
   metrics,
 } from "@recipesage/util/server/general";
 
@@ -56,7 +57,11 @@ export const signInWithGoogle = publicProcedure
       },
     });
 
-    if (!existingUser && !input.allowRegistration) {
+    // The operator's server-side switch overrides the client's allowRegistration.
+    if (
+      !existingUser &&
+      (!input.allowRegistration || isRegistrationDisabled())
+    ) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "An account with that email address was not found",

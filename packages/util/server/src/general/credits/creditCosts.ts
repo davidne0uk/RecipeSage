@@ -12,6 +12,8 @@ export const CreditOperations = {
   ImportUrls: "importUrls",
   ImportTextfiles: "importTextfiles",
   AssistantMessage: "assistantMessage",
+  PantryIdentifyProduct: "pantryIdentifyProduct",
+  PantryEstimateFillLevel: "pantryEstimateFillLevel",
 } as const;
 
 export type CreditOperation =
@@ -28,4 +30,6 @@ export const CREDIT_COSTS: Record<CreditOperation, number> = {
   importUrls: 5,
   importTextfiles: 5,
   assistantMessage: 1,
+  pantryIdentifyProduct: 2,
+  pantryEstimateFillLevel: 2,
 };

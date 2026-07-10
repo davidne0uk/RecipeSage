@@ -84,15 +84,17 @@ describe("login", () => {
   });
 
   describe("error", () => {
-    test("throws when the user does not exist", async () => {
+    const GENERIC_MESSAGE = "The email or password provided is incorrect";
+
+    test("throws a generic error when the user does not exist", async () => {
       const email = faker.internet.email().toLowerCase();
 
       await expect(
         anonymousTrpc.users.login({ email, password: "anything" }),
-      ).rejects.toThrow("An account with that email address was not found");
+      ).rejects.toThrow(GENERIC_MESSAGE);
     });
 
-    test("throws when the account has no password", async () => {
+    test("throws the same generic error for an SSO-only account", async () => {
       const email = faker.internet.email().toLowerCase();
       await prisma.user.create({
         data: { name: faker.person.fullName(), email },
@@ -101,19 +103,35 @@ describe("login", () => {
 
       await expect(
         anonymousTrpc.users.login({ email, password: "anything" }),
-      ).rejects.toThrow(
-        "This account does not have a password setup, and instead uses an SSO provider",
-      );
+      ).rejects.toThrow(GENERIC_MESSAGE);
     });
 
-    test("throws when the password is incorrect", async () => {
+    test("throws the same generic error when the password is incorrect", async () => {
       const password = faker.internet.password({ length: 12 });
       const { email } = await createPasswordUser(password);
       createdEmails.push(email);
 
       await expect(
         anonymousTrpc.users.login({ email, password: "wrong-password" }),
-      ).rejects.toThrow("The password provided is incorrect");
+      ).rejects.toThrow(GENERIC_MESSAGE);
+    });
+
+    test("unknown email and wrong password are indistinguishable by message", async () => {
+      const password = faker.internet.password({ length: 12 });
+      const { email } = await createPasswordUser(password);
+      createdEmails.push(email);
+      const unknownEmail = faker.internet.email().toLowerCase();
+
+      const wrongPassword = await anonymousTrpc.users
+        .login({ email, password: "wrong-password" })
+        .then(() => null)
+        .catch((e) => e.message);
+      const noSuchUser = await anonymousTrpc.users
+        .login({ email: unknownEmail, password: "wrong-password" })
+        .then(() => null)
+        .catch((e) => e.message);
+
+      expect(wrongPassword).toEqual(noSuchUser);
     });
   });
 });

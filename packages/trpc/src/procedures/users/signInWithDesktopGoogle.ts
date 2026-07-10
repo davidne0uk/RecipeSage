@@ -7,6 +7,7 @@ import {
   SessionType,
   generateSession,
   config,
+  isRegistrationDisabled,
   metrics,
 } from "@recipesage/util/server/general";
 
@@ -110,7 +111,10 @@ export const signInWithDesktopGoogle = publicProcedure
       },
     });
 
-    if (!existingUser && !payload.allowRegistration) {
+    if (
+      !existingUser &&
+      (!payload.allowRegistration || isRegistrationDisabled())
+    ) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "An account with that email address was not found",

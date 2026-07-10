@@ -1,4 +1,5 @@
 export * from "./auth/validateSession";
+export * from "./auth/isRegistrationDisabled";
 export * from "./auth/generateSession";
 export * from "./auth/extendSession";
 export * from "./auth/generatePasswordHash";
