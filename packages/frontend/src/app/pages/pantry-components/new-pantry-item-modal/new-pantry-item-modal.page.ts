@@ -79,6 +79,12 @@ export class NewPantryItemModalPage implements OnInit {
   barcode = "";
   amount = 1;
   bestBeforeDate = "";
+  /**
+   * Deliberately unset until chosen: the unit decides whether the product is
+   * counted or tracked as a fill level (Jar/Bottle), so defaulting to whatever
+   * Grocy lists first silently strips fill tracking from jars. Photo
+   * identification may preselect it; otherwise the save button stays disabled.
+   */
   quantityUnitId: number | null = null;
 
   quantityUnits = signal<
@@ -99,7 +105,6 @@ export class NewPantryItemModalPage implements OnInit {
       await this.serverActionsService.pantry.getQuantityUnits();
     if (quantityUnits) {
       this.quantityUnits.set(quantityUnits);
-      this.quantityUnitId = quantityUnits[0]?.id ?? null;
     }
   }
 

@@ -1936,6 +1936,7 @@
   "pages.newPantryItem.title": "Add pantry item",
   "pages.newPantryItem.name": "Name",
   "pages.newPantryItem.unit": "Unit",
+  "pages.newPantryItem.unit.placeholder": "Choose a unit",
   "pages.newPantryItem.amount": "Amount",
   "pages.newPantryItem.bestBefore": "Best before (optional)",
   "pages.newPantryItem.barcode": "Barcode (optional)",
