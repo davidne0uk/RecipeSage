@@ -5,6 +5,7 @@ export * from "./convertPrismaMessages";
 export * from "./convertPrismaProfileItems";
 export * from "./getFriendshipIds";
 export * from "./getFriendshipUserProfiles";
+export * from "./communalRecipeWhere";
 export * from "./getRecipesWithConstraints";
 export * from "./findRecipesByIngredients";
 export * from "./getUniqueRecipeTitle";

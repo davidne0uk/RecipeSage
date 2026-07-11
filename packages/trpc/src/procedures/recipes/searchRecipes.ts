@@ -57,7 +57,9 @@ export const searchRecipes = publicProcedure
       userIds.push(...friendships.friends);
     }
 
-    const recipeIds = await _searchRecipes(userIds, input.searchTerm);
+    const recipeIds = await _searchRecipes(userIds, input.searchTerm, {
+      contextUserId: ctx.session?.userId || undefined,
+    });
 
     const recipeIdsMap = recipeIds.reduce(
       (acc, recipeId, idx) => {

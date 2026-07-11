@@ -2,6 +2,7 @@ import { prisma } from "@recipesage/prisma";
 import { authenticatedProcedure } from "../../trpc";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { communalRecipeWhere } from "@recipesage/util/server/db";
 
 export const deleteRecipe = authenticatedProcedure
   .meta({
@@ -20,11 +21,10 @@ export const deleteRecipe = authenticatedProcedure
   )
   .output(z.string())
   .mutation(async ({ ctx, input }) => {
-    const recipe = await prisma.recipe.findUnique({
-      where: {
+    const recipe = await prisma.recipe.findFirst({
+      where: communalRecipeWhere(ctx.session.userId, {
         id: input.id,
-        userId: ctx.session.userId,
-      },
+      }),
     });
 
     if (!recipe) {

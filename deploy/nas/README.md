@@ -59,6 +59,33 @@ except through the tunnel — do **not** re-publish `proxy`'s port or router-for
    With `DISABLE_REGISTRATION=true`, create your account before enabling it (or
    flip it to `false` briefly, register, then set it back and redeploy).
 
+   Optionally add `ENABLE_COMMUNAL_RECIPE_LIBRARY=true` to run this instance as a
+   shared household library — see below.
+
+## Communal recipe library
+
+By default a recipe is private to the user who created it. Setting
+
+```env
+ENABLE_COMMUNAL_RECIPE_LIBRARY=true
+```
+
+turns the whole instance into one shared library: **every** signed-in user can
+view, edit and delete **every** recipe, including recipes that already existed
+before the flag was turned on and any created afterwards. No per-user or
+per-recipe sharing setup is needed.
+
+Notes before enabling:
+
+- Recipes keep their original owner; editing someone else's recipe does not
+  transfer ownership.
+- There is no edit history or undo — anyone can overwrite or delete anyone's
+  recipe. Rely on database backups (see Backups below).
+- "Delete all my recipes" and "delete by label" stay scoped to the calling user,
+  so one person cannot wipe the shared library in a single action.
+- Env is read at container start, so restart the `api` container after changing
+  it. Turning the flag back off immediately restores private-per-owner behaviour.
+
 3. **Grocy one-time setup** (same as before, new host):
    - `http://<nas>:9283` → log in admin/admin → change password
    - wrench icon → Manage API keys → Add → put the key in the stack .env as

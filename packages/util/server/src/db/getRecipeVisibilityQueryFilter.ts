@@ -1,5 +1,6 @@
 import { Prisma, ProfileItem } from "@recipesage/prisma";
 import { prisma } from "@recipesage/prisma";
+import { config } from "../general/config";
 import { getFriendshipIds } from "./getFriendshipIds";
 
 /**
@@ -14,6 +15,12 @@ export const getRecipeVisibilityQueryFilter = async (args: {
   friendIds?: Set<string>;
 }) => {
   const { tx = prisma, userId: contextUserId, userIds } = args;
+
+  // Communal library: any signed in user can see every recipe on the instance,
+  // so an unconstrained filter replaces the per-user sharing rules entirely.
+  if (config.recipes.communalLibrary && contextUserId) {
+    return [{}] satisfies Prisma.RecipeWhereInput[];
+  }
 
   let friendIds: Set<string> = args.friendIds ?? new Set();
   if (contextUserId && !args.friendIds) {

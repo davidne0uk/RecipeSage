@@ -7,7 +7,11 @@ import {
   userHasCapability,
 } from "@recipesage/util/server/capabilities";
 import { Capabilities } from "@recipesage/util/shared";
-import { getFriendshipIds } from "@recipesage/util/server/db";
+import {
+  communalRecipeWhere,
+  getFriendshipIds,
+} from "@recipesage/util/server/db";
+import { config } from "@recipesage/util/server/general";
 
 export const updateRecipe = authenticatedProcedure
   .meta({
@@ -69,11 +73,10 @@ export const updateRecipe = authenticatedProcedure
     }),
   )
   .mutation(async ({ ctx, input }) => {
-    const initialRecipe = await prisma.recipe.findUnique({
-      where: {
+    const initialRecipe = await prisma.recipe.findFirst({
+      where: communalRecipeWhere(ctx.session.userId, {
         id: input.id,
-        userId: ctx.session.userId,
-      },
+      }),
       include: {
         recipeImages: true,
       },
@@ -98,22 +101,25 @@ export const updateRecipe = authenticatedProcedure
     );
 
     const labelIds = input.labelIds || [];
-    const doesNotOwnAssignedLabel = !!(await prisma.label.findFirst({
-      where: {
-        id: {
-          in: input.labelIds,
+    // In a communal library any user's labels may be applied to any recipe.
+    if (!config.recipes.communalLibrary) {
+      const doesNotOwnAssignedLabel = !!(await prisma.label.findFirst({
+        where: {
+          id: {
+            in: input.labelIds,
+          },
+          userId: {
+            not: ctx.session.userId,
+          },
         },
-        userId: {
-          not: ctx.session.userId,
-        },
-      },
-    }));
+      }));
 
-    if (doesNotOwnAssignedLabel) {
-      throw new TRPCError({
-        message: "You do not own one of the specified label ids",
-        code: "FORBIDDEN",
-      });
+      if (doesNotOwnAssignedLabel) {
+        throw new TRPCError({
+          message: "You do not own one of the specified label ids",
+          code: "FORBIDDEN",
+        });
+      }
     }
 
     if (input.linkedRecipeIds) {
@@ -252,7 +258,9 @@ export const updateRecipe = authenticatedProcedure
         },
         data: {
           title: input.title,
-          userId: ctx.session.userId,
+          // Preserve the original owner - editing another user's recipe in a
+          // communal library must not transfer ownership to the editor.
+          userId: initialRecipe.userId,
           description: input.description,
           yield: input.yield,
           activeTime: input.activeTime,

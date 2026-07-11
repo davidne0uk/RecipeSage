@@ -19,6 +19,8 @@ export const deleteRecipesByLabelIds = authenticatedProcedure
   )
   .output(z.string())
   .mutation(async ({ ctx, input }) => {
+    // Intentionally always scoped to the caller, even when the communal library
+    // is enabled - see deleteAllRecipes.
     const where = {
       userId: ctx.session.userId,
       recipeLabels: {

@@ -1,5 +1,5 @@
 import { prisma } from "@recipesage/prisma";
-import { recipeFactory } from "@recipesage/util/server/general";
+import { recipeFactory, config } from "@recipesage/util/server/general";
 import { test } from "../../testutils";
 
 describe("updateRecipe", () => {
@@ -149,6 +149,106 @@ describe("updateRecipe", () => {
           id: recipe.id,
         }),
       ).rejects.toThrow("You do not own one of the specified label ids");
+    });
+  });
+
+  describe("communal library", () => {
+    afterEach(() => {
+      config.recipes.communalLibrary = false;
+    });
+
+    test("updates another user's recipe when enabled", async ({
+      trpc,
+      user,
+      user2,
+    }) => {
+      config.recipes.communalLibrary = true;
+
+      const recipe = await prisma.recipe.create({
+        data: {
+          ...recipeFactory(user2.id),
+          title: "salad",
+        },
+      });
+
+      await trpc.recipes.updateRecipe({
+        ...recipeFactory(user.id),
+        title: "improved salad",
+        labelIds: [],
+        imageIds: [],
+        folder: "main",
+        id: recipe.id,
+      });
+
+      const updatedRecipe = await prisma.recipe.findUnique({
+        where: { id: recipe.id },
+      });
+      expect(updatedRecipe?.title).toEqual("improved salad");
+    });
+
+    test("preserves the original owner when another user edits", async ({
+      trpc,
+      user,
+      user2,
+    }) => {
+      config.recipes.communalLibrary = true;
+
+      const recipe = await prisma.recipe.create({
+        data: {
+          ...recipeFactory(user2.id),
+          title: "salad",
+        },
+      });
+
+      await trpc.recipes.updateRecipe({
+        ...recipeFactory(user.id),
+        title: "improved salad",
+        labelIds: [],
+        imageIds: [],
+        folder: "main",
+        id: recipe.id,
+      });
+
+      const updatedRecipe = await prisma.recipe.findUnique({
+        where: { id: recipe.id },
+      });
+      expect(updatedRecipe?.userId).toEqual(user2.id);
+      expect(updatedRecipe?.userId).not.toEqual(user.id);
+    });
+
+    test("allows applying another user's label when enabled", async ({
+      trpc,
+      user,
+      user2,
+    }) => {
+      config.recipes.communalLibrary = true;
+
+      const recipe = await prisma.recipe.create({
+        data: {
+          ...recipeFactory(user.id),
+        },
+      });
+      const label = await prisma.label.create({
+        data: {
+          title: "salads",
+          userId: user2.id,
+          labelGroupId: null,
+        },
+      });
+
+      await trpc.recipes.updateRecipe({
+        ...recipeFactory(user.id),
+        title: "salads",
+        labelIds: [label.id],
+        imageIds: [],
+        folder: "main",
+        id: recipe.id,
+      });
+
+      const recipeLabels = await prisma.recipeLabel.findMany({
+        where: { recipeId: recipe.id },
+      });
+      expect(recipeLabels.map((rl) => rl.labelId)).toEqual([label.id]);
     });
   });
 });

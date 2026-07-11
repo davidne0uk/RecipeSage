@@ -75,6 +75,13 @@ export const config = {
     url: getEnvString("GROCY_URL", []),
     apiKey: getEnvString("GROCY_API_KEY", []),
   },
+  recipes: {
+    // When enabled, every authenticated user may read, edit and delete every
+    // recipe on the instance regardless of ownership. Intended for trusted
+    // single-household selfhost deployments. Off preserves upstream behaviour.
+    communalLibrary:
+      getEnvString("ENABLE_COMMUNAL_RECIPE_LIBRARY", []) === "true",
+  },
   ai: {
     provider:
       getEnvString("AI_PROVIDER", Environment.AllRuntime) || "openrouter",

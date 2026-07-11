@@ -270,7 +270,9 @@ router.get(
     }
 
     console.log(userIds);
-    const recipeIds = await Search.searchRecipes(userIds, req.query.query);
+    const recipeIds = await Search.searchRecipes(userIds, req.query.query, {
+      contextUserId: res.locals.session?.userId || undefined,
+    });
 
     const recipeIdsMap = recipeIds.reduce((acc, recipeId, idx) => {
       acc[recipeId] = idx + 1;

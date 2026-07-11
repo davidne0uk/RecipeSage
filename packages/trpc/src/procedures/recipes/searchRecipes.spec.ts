@@ -4,6 +4,7 @@ import {
   labelFactory,
   friendshipFactory,
   profileItemFactory,
+  config,
 } from "@recipesage/util/server/general";
 import { test, anonymousTrpc } from "../../testutils";
 
@@ -319,5 +320,43 @@ describe("searchRecipes", () => {
 
     expect(response.recipes).toEqual([]);
     expect(response.totalCount).toBe(0);
+  });
+
+  describe("communal library", () => {
+    afterEach(() => {
+      config.recipes.communalLibrary = false;
+    });
+
+    test("does not find another user's recipe when disabled", async ({
+      trpc,
+      user2,
+    }) => {
+      config.recipes.communalLibrary = false;
+      await createRecipe(user2.id, { title: "Roasted chickenzz" });
+
+      const response = await trpc.recipes.searchRecipes({
+        searchTerm: "chickenzz",
+        folder: "main",
+      });
+
+      expect(response.recipes).toEqual([]);
+    });
+
+    test("finds another user's recipe when enabled", async ({
+      trpc,
+      user2,
+    }) => {
+      config.recipes.communalLibrary = true;
+      const theirs = await createRecipe(user2.id, {
+        title: "Roasted chickenzz",
+      });
+
+      const response = await trpc.recipes.searchRecipes({
+        searchTerm: "chickenzz",
+        folder: "main",
+      });
+
+      expect(response.recipes.map((r) => r.id)).toEqual([theirs.id]);
+    });
   });
 });

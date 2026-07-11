@@ -1,8 +1,12 @@
 import { prisma } from "@recipesage/prisma";
-import { recipeFactory } from "@recipesage/util/server/general";
+import { recipeFactory, config } from "@recipesage/util/server/general";
 import { test } from "../../testutils";
 
 describe("deleteRecipe", () => {
+  afterEach(() => {
+    config.recipes.communalLibrary = false;
+  });
+
   describe("success", () => {
     test("deletes a recipe", async ({ trpc, user }) => {
       const recipe = await prisma.recipe.create({
@@ -48,6 +52,31 @@ describe("deleteRecipe", () => {
           id: recipe.id,
         }),
       ).rejects.toThrow("Recipe not found");
+    });
+  });
+
+  describe("communal library", () => {
+    test("deletes another user's recipe when enabled", async ({
+      trpc,
+      user2,
+    }) => {
+      config.recipes.communalLibrary = true;
+
+      const recipe = await prisma.recipe.create({
+        data: {
+          ...recipeFactory(user2.id),
+          folder: "inbox",
+        },
+      });
+
+      await trpc.recipes.deleteRecipe({
+        id: recipe.id,
+      });
+
+      const deletedRecipe = await prisma.recipe.findUnique({
+        where: { id: recipe.id },
+      });
+      expect(deletedRecipe).toEqual(null);
     });
   });
 });

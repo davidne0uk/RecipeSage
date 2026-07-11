@@ -1,6 +1,7 @@
 import { prisma } from "@recipesage/prisma";
 import { authenticatedProcedure } from "../../trpc";
 import { z } from "zod";
+import { communalRecipeWhere } from "@recipesage/util/server/db";
 
 export const deleteRecipesByIds = authenticatedProcedure
   .meta({
@@ -19,12 +20,11 @@ export const deleteRecipesByIds = authenticatedProcedure
   )
   .output(z.string())
   .mutation(async ({ ctx, input }) => {
-    const where = {
-      userId: ctx.session.userId,
+    const where = communalRecipeWhere(ctx.session.userId, {
       id: {
         in: input.ids,
       },
-    };
+    });
 
     await prisma.recipe.deleteMany({
       where,

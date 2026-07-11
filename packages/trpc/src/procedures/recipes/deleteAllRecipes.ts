@@ -17,6 +17,9 @@ export const deleteAllRecipes = authenticatedProcedure
   .mutation(async ({ ctx }) => {
     await prisma.$transaction(
       async (tx) => {
+        // Intentionally always scoped to the caller, even when the communal
+        // library is enabled, so that no single call can wipe every user's
+        // recipes.
         await tx.recipe.deleteMany({
           where: {
             userId: ctx.session.userId,

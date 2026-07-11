@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { Prisma, prisma, User } from "@recipesage/prisma";
 import { getRecipesWithConstraints } from "./getRecipesWithConstraints";
 import { userFactory, recipeFactory, labelFactory } from "../general/factories";
+import { config } from "../general/config";
 
 type CallArgs = Parameters<typeof getRecipesWithConstraints>[0];
 
@@ -377,6 +378,104 @@ describe("getRecipesWithConstraints", () => {
       expect(ids).not.toContain(wrongRating.id);
       expect(ids).not.toContain(wrongCalories.id);
       expect(ids).not.toContain(wrongLabel.id);
+    });
+  });
+
+  describe("communal library", () => {
+    let other: User;
+
+    beforeEach(async () => {
+      other = await prisma.user.create({ data: userFactory() });
+      cleanupIds.push(other.id);
+    });
+
+    afterEach(() => {
+      config.recipes.communalLibrary = false;
+    });
+
+    const createOtherRecipe = (
+      title: string,
+      overrides: Partial<Prisma.RecipeUncheckedCreateInput> = {},
+    ) =>
+      prisma.recipe.create({
+        data: { ...recipeFactory(other.id), title, ...overrides },
+      });
+
+    it("does not return another user's unshared recipes when disabled", async () => {
+      config.recipes.communalLibrary = false;
+      const mine = await createRecipe("mine");
+      const theirs = await createOtherRecipe("theirs");
+
+      const result = await run();
+      const ids = result.recipes.map((r) => r.id);
+
+      expect(ids).toContain(mine.id);
+      expect(ids).not.toContain(theirs.id);
+      expect(result.totalCount).toEqual(1);
+    });
+
+    it("returns another user's recipes when enabled", async () => {
+      config.recipes.communalLibrary = true;
+      const mine = await createRecipe("mine");
+      const theirs = await createOtherRecipe("theirs");
+
+      const result = await run();
+      const ids = result.recipes.map((r) => r.id);
+
+      expect(ids).toContain(mine.id);
+      expect(ids).toContain(theirs.id);
+      expect(result.totalCount).toEqual(2);
+    });
+
+    it("still constrains by folder when enabled", async () => {
+      config.recipes.communalLibrary = true;
+      const theirsMain = await createOtherRecipe("theirs-main", {
+        folder: "main",
+      });
+      const theirsInbox = await createOtherRecipe("theirs-inbox", {
+        folder: "inbox",
+      });
+
+      const result = await run({ folder: "main" });
+      const ids = result.recipes.map((r) => r.id);
+
+      expect(ids).toContain(theirsMain.id);
+      expect(ids).not.toContain(theirsInbox.id);
+    });
+
+    it("still constrains by label and paging when enabled", async () => {
+      config.recipes.communalLibrary = true;
+      const label = await prisma.label.create({
+        data: { ...labelFactory(other.id), title: "communal" },
+      });
+      const labelled = await createOtherRecipe("labelled", {
+        recipeLabels: { create: [{ labelId: label.id }] },
+      });
+      await createOtherRecipe("unlabelled");
+
+      const labelResult = await run({ labels: ["communal"] });
+      expect(labelResult.recipes.map((r) => r.id)).toEqual([labelled.id]);
+
+      const pagedResult = await run({ limit: 1 });
+      expect(pagedResult.recipes).toHaveLength(1);
+      expect(pagedResult.totalCount).toEqual(2);
+    });
+
+    it("does not widen visibility for anonymous callers when enabled", async () => {
+      config.recipes.communalLibrary = true;
+      await createOtherRecipe("theirs");
+
+      const result = await getRecipesWithConstraints({
+        userId: undefined,
+        userIds: [other.id],
+        folder: "main",
+        orderBy: { title: "asc" },
+        offset: 0,
+        limit: 200,
+      });
+
+      expect(result.recipes).toEqual([]);
+      expect(result.totalCount).toEqual(0);
     });
   });
 });
