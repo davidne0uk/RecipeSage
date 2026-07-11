@@ -790,7 +790,11 @@
           <ion-item lines="none" class="ion-no-padding">
             <ion-label>
               <p class="ion-text-wrap">
-                {{ "pages.recipeDetails.doesNotBelongToYou" | translate }}
+                @if (canManage) {
+                  {{ "pages.recipeDetails.belongsToAnotherUser" | translate }}
+                } @else {
+                  {{ "pages.recipeDetails.doesNotBelongToYou" | translate }}
+                }
               </p>
             </ion-label>
           </ion-item>
@@ -833,7 +837,7 @@
         </ion-label>
       </ion-item>
       <br />
-      @if (recipe.userId === me()?.id && recipe.folder === "main") {
+      @if (canManage && recipe.folder === "main") {
         <ion-row class="action-buttons ion-justify-content-around">
           <ion-col class="ion-text-center" size="auto">
             <ion-button (click)="editRecipe()" fill="clear" size="small">

@@ -19,10 +19,12 @@ import { imagesRouter } from "./procedures/images/imagesRouter";
 import { messagesRouter } from "./procedures/messages/messagesRouter";
 import { discoverRouter } from "./procedures/discover/discoverRouter";
 import { pantryRouter } from "./procedures/pantry/pantryRouter";
+import { serverRouter } from "./procedures/server/serverRouter";
 
 export const appRouter = router({
   discover: discoverRouter,
   pantry: pantryRouter,
+  server: serverRouter,
   labelGroups: labelGroupsRouter,
   labels: labelsRouter,
   payments: paymentsRouter,

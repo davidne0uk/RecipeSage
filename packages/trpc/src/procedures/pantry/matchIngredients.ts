@@ -10,10 +10,12 @@ import {
   type PantryIngredientMatch,
 } from "@recipesage/util/shared";
 import {
+  config,
   getCachedPantryMatch,
   hashPantryProductSet,
   setCachedPantryMatch,
 } from "@recipesage/util/server/general";
+import { communalRecipeWhere } from "@recipesage/util/server/db";
 import { grocyTrpc } from "./common";
 
 /**
@@ -51,10 +53,9 @@ export const matchIngredients = authenticatedProcedure
   .output(z.array(ingredientAvailabilitySchema))
   .query(async ({ ctx, input }) => {
     const recipe = await prisma.recipe.findFirst({
-      where: {
+      where: communalRecipeWhere(ctx.session.userId, {
         id: input.recipeId,
-        userId: ctx.session.userId,
-      },
+      }),
       select: {
         ingredients: true,
       },
@@ -71,9 +72,19 @@ export const matchIngredients = authenticatedProcedure
       .map((line) => line.originalContent.trim())
       .filter((line) => line.length > 0);
 
+    // One shared pantry implies one shared matching vocabulary: in a communal
+    // library every user's aliases apply, so nobody re-teaches a mapping another
+    // user already taught. Ordering oldest-first means that when two users alias
+    // the same ingredient text to different products, the most recently taught
+    // one wins deterministically (it overwrites the earlier key below).
     const aliases = await prisma.pantryProductAlias.findMany({
-      where: {
-        userId: ctx.session.userId,
+      where: config.recipes.communalLibrary
+        ? {}
+        : {
+            userId: ctx.session.userId,
+          },
+      orderBy: {
+        updatedAt: "asc",
       },
     });
     const aliasByIngredientText = new Map(

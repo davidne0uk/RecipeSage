@@ -28,6 +28,7 @@ import {
   FeatureFlagKeys,
   FeatureFlagService,
 } from "./services/feature-flag.service";
+import { ServerFeaturesService } from "./services/server-features.service";
 import { Title } from "@angular/platform-browser";
 import { TRPCService } from "./services/trpc.service";
 import { ServerActionsService } from "./services/server-actions.service";
@@ -125,6 +126,7 @@ export class AppComponent {
   private websocketService = inject(WebsocketService);
   private preferencesService = inject(PreferencesService);
   private featureFlagService = inject(FeatureFlagService);
+  private serverFeaturesService = inject(ServerFeaturesService);
   private titleService = inject(Title);
   cookingToolbarService = inject(CookingToolbarService);
   private versionCheckService = inject(VersionCheckService);
@@ -198,6 +200,8 @@ export class AppComponent {
     }
 
     this.initializeApp();
+
+    this.serverFeaturesService.load();
 
     this.loadInboxCount();
     this.loadFriendRequestCount();

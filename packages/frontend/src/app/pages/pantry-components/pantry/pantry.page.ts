@@ -2,6 +2,7 @@ import {
   Component,
   ElementRef,
   ViewChild,
+  computed,
   inject,
   signal,
 } from "@angular/core";
@@ -37,6 +38,7 @@ import {
   IonItem,
   IonLabel,
   IonBadge,
+  IonSearchbar,
   IonFab,
   IonFabButton,
   IonSpinner,
@@ -84,6 +86,7 @@ const FILL_LEVELS: PantryFillLevel[] = [
     IonItem,
     IonLabel,
     IonBadge,
+    IonSearchbar,
     IonFab,
     IonFabButton,
     IonSpinner,
@@ -103,6 +106,22 @@ export class PantryPage {
 
   pantry = signal<PantryView | undefined>(undefined);
   errorState = signal<"notConfigured" | "unavailable" | null>(null);
+
+  searchText = signal("");
+
+  /**
+   * Filtering happens over the stock already loaded into `pantry`, so typing
+   * never issues another Grocy request.
+   */
+  filteredPantry = computed(() => {
+    const pantry = this.pantry();
+    if (!pantry) return pantry;
+
+    const query = this.searchText().trim().toLowerCase();
+    if (!query) return pantry;
+
+    return pantry.filter((item) => item.name.toLowerCase().includes(query));
+  });
 
   private fillPhotoItem: PantryItemView | null = null;
 

@@ -86,10 +86,30 @@
             {{ "pages.pantry.empty.addItem" | translate }}
           </ion-button>
         </null-state>
+      } @else {
+        <ion-searchbar
+          [value]="searchText()"
+          (ionInput)="searchText.set($any($event).detail.value || '')"
+          [placeholder]="'pages.pantry.search.placeholder' | translate"
+        ></ion-searchbar>
+
+        @if (filteredPantry()?.length === 0) {
+          <null-state>
+            <ion-icon
+              name="file-tray-stacked-outline"
+              class="big-icon"
+              virtualSlot="header"
+            ></ion-icon>
+            <ion-label virtualSlot="body">
+              <h2>{{ "pages.pantry.search.noResults.title" | translate }}</h2>
+              <p>{{ "pages.pantry.search.noResults.subtitle" | translate }}</p>
+            </ion-label>
+          </null-state>
+        }
       }
 
       <ion-list>
-        @for (item of pantry(); track item.productId) {
+        @for (item of filteredPantry(); track item.productId) {
           <ion-item button (click)="itemOptions(item)">
             <ion-label>
               <h2>{{ item.name }}</h2>

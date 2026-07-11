@@ -45,6 +45,7 @@ import {
 import { System } from "unitz-ts";
 import type { RecipeSummary, RecipeSummaryLite } from "@recipesage/prisma";
 import { ServerActionsService } from "../../../services/server-actions.service";
+import { ServerFeaturesService } from "../../../services/server-features.service";
 import { Title } from "@angular/platform-browser";
 import { PantryAvailabilityComponent } from "../../../components/pantry-availability/pantry-availability.component";
 import { SHARED_UI_IMPORTS } from "../../../providers/shared-ui.provider";
@@ -132,6 +133,7 @@ export class RecipePage {
   cookingToolbarService = inject(CookingToolbarService);
   private translate = inject(TranslateService);
   private serverActionsService = inject(ServerActionsService);
+  private serverFeaturesService = inject(ServerFeaturesService);
   private titleService = inject(Title);
 
   defaultBackHref: string = RouteMap.HomePage.getPath("main");
@@ -317,6 +319,21 @@ export class RecipePage {
 
   get isOwner() {
     return !!this.recipe && this.recipe.userId === this.me()?.id;
+  }
+
+  /**
+   * Whether the user may act on this recipe (edit, delete, add to a shopping
+   * list or meal plan). In a communal library any signed in user may do so, and
+   * the API authorizes it - so the UI must offer it, otherwise the only way to
+   * shop another user's recipe is to clone it first.
+   */
+  get canManage() {
+    if (!this.recipe) return false;
+    if (this.isOwner) return true;
+
+    return (
+      this.serverFeaturesService.communalRecipeLibrary() && this.isLoggedIn
+    );
   }
 
   openLabel(labelTitle: string) {

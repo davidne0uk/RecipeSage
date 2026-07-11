@@ -14,6 +14,7 @@ import { PaymentsActionsService } from "./server-actions/payments-actions.servic
 import { MessagesActionsService } from "./server-actions/messages-actions.service";
 import { DiscoverActionsService } from "./server-actions/discover-actions.service";
 import { PantryActionsService } from "./server-actions/pantry-actions.service";
+import { ServerFeaturesActionsService } from "./server-actions/server-features-actions.service";
 
 @Injectable({
   providedIn: "root",
@@ -33,4 +34,5 @@ export class ServerActionsService {
   payments = inject(PaymentsActionsService);
   messages = inject(MessagesActionsService);
   pantry = inject(PantryActionsService);
+  server = inject(ServerFeaturesActionsService);
 }

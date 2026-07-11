@@ -1,6 +1,6 @@
 import { describe, expect, vi, beforeEach, afterEach } from "vitest";
 import { prisma } from "@recipesage/prisma";
-import { clearPantryMatchCache } from "@recipesage/util/server/general";
+import { clearPantryMatchCache, config } from "@recipesage/util/server/general";
 import { test } from "../../testutils";
 import {
   createGrocyFetchMock,
@@ -141,5 +141,79 @@ describe("matchIngredients", () => {
     await expect(
       trpc.pantry.matchIngredients({ recipeId: recipe.id }),
     ).rejects.toThrow("Recipe not found");
+  });
+
+  describe("communal library", () => {
+    afterEach(() => {
+      config.recipes.communalLibrary = false;
+    });
+
+    test("matches another user's recipe when enabled", async ({
+      trpc,
+      user2,
+    }) => {
+      config.recipes.communalLibrary = true;
+
+      const recipe = await createRecipe(
+        user2.id,
+        "1 x 400g tin chopped tomatoes",
+      );
+
+      const result = await trpc.pantry.matchIngredients({
+        recipeId: recipe.id,
+      });
+
+      expect(result.length).toEqual(1);
+      expect(result[0]).toMatchObject({
+        productName: "Chopped tomatoes",
+        inStock: true,
+      });
+    });
+
+    test("applies another user's alias when enabled", async ({
+      trpc,
+      trpc2,
+      user,
+    }) => {
+      config.recipes.communalLibrary = true;
+
+      // user2 teaches the mapping; user (A) must benefit from it.
+      await trpc2.pantry.setIngredientAlias({
+        ingredientText: "passata",
+        grocyProductId: 2,
+      });
+
+      const recipe = await createRecipe(user.id, "200ml passata");
+
+      const result = await trpc.pantry.matchIngredients({
+        recipeId: recipe.id,
+      });
+
+      expect(result[0]).toMatchObject({
+        productId: 2,
+        confidence: "alias",
+      });
+    });
+
+    test("does not apply another user's alias when disabled", async ({
+      trpc,
+      trpc2,
+      user,
+    }) => {
+      config.recipes.communalLibrary = false;
+
+      await trpc2.pantry.setIngredientAlias({
+        ingredientText: "passata",
+        grocyProductId: 2,
+      });
+
+      const recipe = await createRecipe(user.id, "200ml passata");
+
+      const result = await trpc.pantry.matchIngredients({
+        recipeId: recipe.id,
+      });
+
+      expect(result[0].confidence).not.toEqual("alias");
+    });
   });
 });
