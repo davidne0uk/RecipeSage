@@ -32,6 +32,11 @@
                 {{ "components.pantryAvailability.lowFill" | translate }}
               </ion-badge>
             }
+            @if (isGuessedMatch(match)) {
+              <ion-badge color="medium">
+                {{ "components.pantryAvailability.guessedMatch" | translate }}
+              </ion-badge>
+            }
           </p>
         </ion-label>
       </ion-item>

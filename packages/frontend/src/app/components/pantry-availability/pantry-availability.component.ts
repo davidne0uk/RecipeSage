@@ -87,6 +87,10 @@ export class PantryAvailabilityComponent implements OnInit {
     return "success";
   }
 
+  isGuessedMatch(match: IngredientAvailability): boolean {
+    return match.confidence === "llm";
+  }
+
   async overrideMatch(match: IngredientAvailability) {
     const pantry = await this.serverActionsService.pantry.getPantry({
       412: () => {},

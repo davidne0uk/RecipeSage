@@ -1961,6 +1961,7 @@
   "pages.pantryCommandCard.mode.consumeAll": "Used up (all)",
   "components.pantryAvailability.badge": "{{inStock}} of {{total}} in pantry",
   "components.pantryAvailability.lowFill": "running low",
+  "components.pantryAvailability.guessedMatch": "guessed match",
   "components.pantryAvailability.missing": "Not in pantry:",
   "components.pantryAvailability.linkItem": "Link \"{{ingredient}}\" to a pantry item",
   "components.pantryAvailability.unlink": "Remove link",

@@ -15,6 +15,7 @@ import {
   hashPantryProductSet,
   setCachedPantryMatch,
 } from "@recipesage/util/server/general";
+import { matchIngredientsToProductsWithAi } from "@recipesage/util/server/ml";
 import { communalRecipeWhere } from "@recipesage/util/server/db";
 import { grocyTrpc } from "./common";
 
@@ -29,7 +30,7 @@ export const ingredientAvailabilitySchema = z.object({
   strippedName: z.string(),
   productId: z.number().nullable(),
   productName: z.string().nullable(),
-  confidence: z.enum(["alias", "exact", "strong"]).nullable(),
+  confidence: z.enum(["alias", "exact", "strong", "llm"]).nullable(),
   inStock: z.boolean(),
   lowFill: z.boolean(),
 });
@@ -115,35 +116,114 @@ export const matchIngredients = authenticatedProcedure
           .map((unit) => unit.id),
       );
 
-      return ingredientLines.map((ingredient) => {
-        const aliasProductId = aliasByIngredientText.get(
-          stripIngredient(ingredient).toLowerCase(),
-        );
+      type ResolvedMatch = Omit<PantryIngredientMatch, "confidence"> & {
+        confidence: "alias" | "exact" | "strong" | "llm" | null;
+      };
 
-        let match: Omit<PantryIngredientMatch, "confidence"> & {
-          confidence: "alias" | "exact" | "strong" | null;
-        };
-        if (aliasProductId !== undefined && productById.has(aliasProductId)) {
-          match = {
-            ingredient,
-            strippedName: stripIngredient(ingredient),
-            productId: aliasProductId,
-            confidence: "alias",
-          };
-        } else {
-          const cached = getCachedPantryMatch(ingredient, productSetHash);
-          if (cached) {
-            match = cached;
-          } else {
-            const fuzzyMatch = matchIngredientToProducts(
+      const initialMatches: ResolvedMatch[] = ingredientLines.map(
+        (ingredient) => {
+          const aliasProductId = aliasByIngredientText.get(
+            stripIngredient(ingredient).toLowerCase(),
+          );
+
+          if (aliasProductId !== undefined && productById.has(aliasProductId)) {
+            return {
               ingredient,
-              candidates,
-            );
-            setCachedPantryMatch(ingredient, productSetHash, fuzzyMatch);
-            match = fuzzyMatch;
+              strippedName: stripIngredient(ingredient),
+              productId: aliasProductId,
+              confidence: "alias",
+            };
           }
+
+          const cached = getCachedPantryMatch(ingredient, productSetHash);
+          if (cached) return cached;
+
+          const fuzzyMatch = matchIngredientToProducts(ingredient, candidates);
+          setCachedPantryMatch(ingredient, productSetHash, fuzzyMatch);
+          return fuzzyMatch;
+        },
+      );
+
+      // LLM fallback: only for lines the alias/cache/heuristic pass above
+      // couldn't resolve, batched into a single call. A provider error must
+      // never fail the whole request - affected lines just stay unmatched.
+      const stillUnmatchedIngredients = [
+        ...new Set(
+          initialMatches
+            .filter((match) => match.productId === null)
+            .map((match) => match.ingredient),
+        ),
+      ];
+
+      const aiResultByIngredient = new Map<
+        string,
+        {
+          productId: number | null;
+          confidence: "high" | "medium" | "low" | null;
+        }
+      >();
+      if (stillUnmatchedIngredients.length > 0) {
+        try {
+          const aiResults = await matchIngredientsToProductsWithAi(
+            stillUnmatchedIngredients,
+            candidates,
+          );
+          for (const result of aiResults) {
+            aiResultByIngredient.set(result.ingredient, result);
+          }
+        } catch (err) {
+          console.error("LLM pantry match fallback failed", err);
+        }
+      }
+
+      const aliasWrites: { ingredientText: string; grocyProductId: number }[] =
+        [];
+
+      const finalMatches: ResolvedMatch[] = initialMatches.map((match) => {
+        if (match.productId !== null) return match;
+
+        const aiResult = aiResultByIngredient.get(match.ingredient);
+        if (!aiResult || aiResult.productId === null) return match;
+
+        if (aiResult.confidence === "high") {
+          aliasWrites.push({
+            ingredientText: stripIngredient(match.ingredient).toLowerCase(),
+            grocyProductId: aiResult.productId,
+          });
         }
 
+        return {
+          ingredient: match.ingredient,
+          strippedName: match.strippedName,
+          productId: aiResult.productId,
+          confidence: "llm",
+        };
+      });
+
+      if (aliasWrites.length > 0) {
+        await Promise.all(
+          aliasWrites.map((write) =>
+            prisma.pantryProductAlias.upsert({
+              where: {
+                userId_ingredientText: {
+                  userId: ctx.session.userId,
+                  ingredientText: write.ingredientText,
+                },
+              },
+              create: {
+                userId: ctx.session.userId,
+                ingredientText: write.ingredientText,
+                grocyProductId: write.grocyProductId,
+              },
+              update: {
+                grocyProductId: write.grocyProductId,
+              },
+            }),
+          ),
+        );
+      }
+
+      return finalMatches.map((match) => {
         const product =
           match.productId !== null
             ? productById.get(match.productId)

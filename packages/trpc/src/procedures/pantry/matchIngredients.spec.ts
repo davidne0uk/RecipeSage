@@ -1,6 +1,7 @@
 import { describe, expect, vi, beforeEach, afterEach } from "vitest";
 import { prisma } from "@recipesage/prisma";
 import { clearPantryMatchCache, config } from "@recipesage/util/server/general";
+import { stripIngredient } from "@recipesage/util/shared";
 import { test } from "../../testutils";
 import {
   createGrocyFetchMock,
@@ -11,6 +12,18 @@ import {
 vi.hoisted(() => {
   process.env.GROCY_URL = "http://grocy.test/";
   process.env.GROCY_API_KEY = "test-key";
+});
+
+const matchIngredientsToProductsWithAiMock = vi.fn();
+
+vi.mock("@recipesage/util/server/ml", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@recipesage/util/server/ml")>();
+  return {
+    ...actual,
+    matchIngredientsToProductsWithAi: (...args: unknown[]) =>
+      matchIngredientsToProductsWithAiMock(...args),
+  };
 });
 
 const createRecipe = async (userId: string, ingredients: string) =>
@@ -40,6 +53,8 @@ describe("matchIngredients", () => {
 
   beforeEach(() => {
     clearPantryMatchCache();
+    matchIngredientsToProductsWithAiMock.mockReset();
+    matchIngredientsToProductsWithAiMock.mockResolvedValue([]);
     grocy = createGrocyFetchMock();
     grocy.install();
     grocy
@@ -141,6 +156,117 @@ describe("matchIngredients", () => {
     await expect(
       trpc.pantry.matchIngredients({ recipeId: recipe.id }),
     ).rejects.toThrow("Recipe not found");
+  });
+
+  describe("LLM fallback", () => {
+    test("resolves an ingredient the heuristic can't match", async ({
+      trpc,
+      user,
+    }) => {
+      matchIngredientsToProductsWithAiMock.mockImplementation(
+        async (ingredients: string[]) =>
+          ingredients.map((ingredient) => ({
+            ingredient,
+            productId: 2,
+            confidence: "medium",
+          })),
+      );
+
+      const recipe = await createRecipe(user.id, "1 sheet puff pastry");
+      const result = await trpc.pantry.matchIngredients({
+        recipeId: recipe.id,
+      });
+
+      expect(result[0]).toMatchObject({
+        productId: 2,
+        productName: "Chopped tomatoes",
+        confidence: "llm",
+      });
+      expect(matchIngredientsToProductsWithAiMock).toHaveBeenCalledTimes(1);
+    });
+
+    test("persists a high-confidence match as an alias and skips the LLM on a repeat lookup", async ({
+      trpc,
+      user,
+    }) => {
+      matchIngredientsToProductsWithAiMock.mockImplementation(
+        async (ingredients: string[]) =>
+          ingredients.map((ingredient) => ({
+            ingredient,
+            productId: 2,
+            confidence: "high",
+          })),
+      );
+
+      const recipe = await createRecipe(user.id, "1 tin plum tomatoes");
+
+      const first = await trpc.pantry.matchIngredients({
+        recipeId: recipe.id,
+      });
+      expect(first[0]).toMatchObject({ productId: 2, confidence: "llm" });
+      expect(matchIngredientsToProductsWithAiMock).toHaveBeenCalledTimes(1);
+
+      const ingredientText = stripIngredient(first[0].ingredient).toLowerCase();
+      const alias = await prisma.pantryProductAlias.findUnique({
+        where: {
+          userId_ingredientText: { userId: user.id, ingredientText },
+        },
+      });
+      expect(alias?.grocyProductId).toEqual(2);
+
+      const second = await trpc.pantry.matchIngredients({
+        recipeId: recipe.id,
+      });
+      expect(second[0]).toMatchObject({ productId: 2, confidence: "alias" });
+      // Still only the one call from the first lookup - the alias short-circuits the second.
+      expect(matchIngredientsToProductsWithAiMock).toHaveBeenCalledTimes(1);
+    });
+
+    test("shows a low-confidence match without persisting an alias", async ({
+      trpc,
+      user,
+    }) => {
+      matchIngredientsToProductsWithAiMock.mockImplementation(
+        async (ingredients: string[]) =>
+          ingredients.map((ingredient) => ({
+            ingredient,
+            productId: 2,
+            confidence: "low",
+          })),
+      );
+
+      const recipe = await createRecipe(user.id, "1 tin plum tomatoes");
+      const result = await trpc.pantry.matchIngredients({
+        recipeId: recipe.id,
+      });
+
+      expect(result[0]).toMatchObject({ productId: 2, confidence: "llm" });
+
+      const aliasCount = await prisma.pantryProductAlias.count({
+        where: { userId: user.id },
+      });
+      expect(aliasCount).toEqual(0);
+    });
+
+    test("stays unmatched rather than failing the request when the LLM errors", async ({
+      trpc,
+      user,
+    }) => {
+      matchIngredientsToProductsWithAiMock.mockRejectedValue(
+        new Error("provider down"),
+      );
+
+      const recipe = await createRecipe(user.id, "1 sheet puff pastry");
+      const result = await trpc.pantry.matchIngredients({
+        recipeId: recipe.id,
+      });
+
+      expect(result[0]).toMatchObject({
+        productId: null,
+        confidence: null,
+        inStock: false,
+      });
+    });
   });
 
   describe("communal library", () => {

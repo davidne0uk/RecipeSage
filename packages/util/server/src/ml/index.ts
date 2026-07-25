@@ -8,3 +8,4 @@ export * from "./textToNutrition";
 export * from "./moderateDiscoverRecipe";
 export * from "./photoToProduct";
 export * from "./photoToFillLevel";
+export * from "./matchIngredientsWithAi";
